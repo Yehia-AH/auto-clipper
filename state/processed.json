@@ -1,3 +1,8 @@
 {
+  "failures": {
+    "https://www.twitch.tv/videos/2929935152": 1
+  },
+  "partial": {},
+  "partial_urls": {},
   "processed": {}
 }
