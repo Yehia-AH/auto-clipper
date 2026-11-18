@@ -259,7 +259,7 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
 
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{start:.2f}", "-i", str(src.resolve()),
            "-t", f"{dur:.2f}", "-filter_complex", graph, "-map", "[v]", "-map", "0:a?",
-           "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+           "-r", "30", "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-maxrate", "6M", "-bufsize", "12M",
            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart",
            out.name]
     subprocess.run(cmd, check=True, cwd=workdir)

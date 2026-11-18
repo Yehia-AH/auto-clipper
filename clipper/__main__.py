@@ -208,12 +208,17 @@ def main() -> None:
                 if not item["id"]:  # a URL run by hand: look up its id to resume parts
                     item["id"] = fetch.probe_url(url)["id"]
                 # Long streams come in parts; keep going while there's time in this run.
+                seen_parts = set()
                 while True:
                     est = min(item["duration"] or part_secs, part_secs) * cfg["processing_ratio"] + 15 * 60
                     if budget and done and time.time() - started + est > budget:
                         print(f"[later] not enough time left for {url}, next run will take it")
                         break
                     part = state["partial"].get(item["id"], 0)
+                    if part in seen_parts:  # safety net: progress must move forward
+                        print(f"[error] {url}: part {part + 1} came up twice, stopping this video")
+                        break
+                    seen_parts.add(part)
                     src = item.get("source") or fetch.find_source(cfg, url)
                     video = fetch.download(url, work, cfg, part, src)
                     if item.get("source", {}).get("name") or item.get("source", {}).get("notes"):
@@ -223,13 +228,13 @@ def main() -> None:
                     done.append(out)
                     state["failures"].pop(key, None)
                     if video["part"] + 1 < video["parts"]:
-                        state["partial"][video["id"]] = video["part"] + 1
-                        state["partial_urls"][video["id"]] = url
+                        state["partial"][item["id"]] = video["part"] + 1
+                        state["partial_urls"][item["id"]] = url
                         fetch.save_state(state)
                         continue  # next part (or NotReady if it's still being streamed)
-                    state["partial"].pop(video["id"], None)
-                    state["partial_urls"].pop(video["id"], None)
-                    state["processed"][video["id"]] = {
+                    state["partial"].pop(item["id"], None)
+                    state["partial_urls"].pop(item["id"], None)
+                    state["processed"][item["id"]] = {
                         "title": video["title"], "date": f"{dt.date.today()}",
                         "output": str(out.relative_to(ROOT)) if out else None}
                     break
