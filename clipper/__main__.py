@@ -95,6 +95,7 @@ def main() -> None:
     else:
         state = fetch.load_state()
         state.setdefault("failures", {})
+        state.setdefault("partial", {})
         if args.cmd == "run":
             if not cfg["sources"]:
                 print("No sources in config.yaml yet. Add a channel or playlist URL.")
@@ -110,17 +111,23 @@ def main() -> None:
         started = time.time()
         for item in todo:
             url = item["url"]
-            est = item["duration"] * cfg["processing_ratio"] + 15 * 60
+            est = min(item["duration"], cfg["max_stream_hours"] * 3600) * cfg["processing_ratio"] + 15 * 60
             if budget and done and time.time() - started + est > budget:
                 print(f"[later] not enough time left for {url}, next run will take it")
                 continue
             key = item["id"] or url
+            part = state["partial"].get(item["id"], 0) if item["id"] else 0
             try:
-                video = fetch.download(url, work, cfg)
+                video = fetch.download(url, work, cfg, part)
                 out = process_video(video, cfg)
-                state["processed"][video["id"]] = {
-                    "title": video["title"], "date": f"{dt.date.today()}",
-                    "output": str(out.relative_to(ROOT)) if out else None}
+                if video["part"] + 1 < video["parts"]:
+                    # marathon stream: next run picks up the next part
+                    state["partial"][video["id"]] = video["part"] + 1
+                else:
+                    state["partial"].pop(video["id"], None)
+                    state["processed"][video["id"]] = {
+                        "title": video["title"], "date": f"{dt.date.today()}",
+                        "output": str(out.relative_to(ROOT)) if out else None}
                 state["failures"].pop(key, None)
                 done.append(out)
             except fetch.NotReady as e:

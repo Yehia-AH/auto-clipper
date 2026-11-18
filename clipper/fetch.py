@@ -1,5 +1,6 @@
 """Find new uploads on the watched sources and download them with yt-dlp."""
 import json
+import math
 import os
 import re
 import tempfile
@@ -101,9 +102,11 @@ def probe_url(url: str) -> dict:
         return ydl.extract_info(url, download=False)
 
 
-def download(url: str, workdir: Path, cfg: dict) -> dict:
-    """Download a video or stream VOD as mp4. Returns {id, title, path, duration, url}.
-    Long streams are fetched at 720p to keep disk use and processing time down."""
+def download(url: str, workdir: Path, cfg: dict, part: int = 0) -> dict:
+    """Download a video or stream VOD as mp4.
+    Returns {id, title, path, duration, url, part, parts}.
+    Long streams are fetched at 720p. Marathon streams longer than max_stream_hours are
+    split into parts of that length; `part` picks which one (one part per run)."""
     info = probe_url(url)
     if info.get("is_live") or info.get("live_status") in ("is_live", "is_upcoming", "post_live"):
         raise NotReady("stream is still live or the VOD is still processing")
@@ -112,8 +115,11 @@ def download(url: str, workdir: Path, cfg: dict) -> dict:
     # Twitch lists the VOD of a stream that's still going; its end is ~now.
     if ts and dur and time.time() - (ts + dur) < 20 * 60 and "twitch.tv" in url:
         raise NotReady("Twitch VOD looks like it is still recording")
-    if dur > cfg["max_stream_hours"] * 3600:
-        raise Skip(f"longer than max_stream_hours ({dur / 3600:.1f}h)")
+    part_len = cfg["max_stream_hours"] * 3600
+    parts = max(1, math.ceil((dur - 60) / part_len)) if dur else 1
+    if part >= parts:
+        raise Skip("all parts already clipped")
+    start, end = part * part_len, min(dur, (part + 1) * part_len) if dur else None
 
     height = 720 if dur > cfg["long_video_minutes"] * 60 else 1080
     workdir.mkdir(parents=True, exist_ok=True)
@@ -122,13 +128,19 @@ def download(url: str, workdir: Path, cfg: dict) -> dict:
         "format": (f"bv*[height<={height}][ext=mp4]+ba[ext=m4a]/bv*[height<={height}]+ba/"
                    f"b[height<={height}]/b"),
         "merge_output_format": "mp4",
-        "outtmpl": str(workdir / "%(id)s.%(ext)s"),
+        "outtmpl": str(workdir / f"%(id)s_p{part}.%(ext)s"),
         "noplaylist": True,
         "concurrent_fragment_downloads": 8,  # stream VODs come in many small pieces
     }
+    if parts > 1:
+        opts["download_ranges"] = yt_dlp.utils.download_range_func(None, [(start, end)])
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=True)
         path = Path(ydl.prepare_filename(info)).with_suffix(".mp4")
-    return {"id": info["id"], "title": info.get("title") or info["id"],
-            "path": path, "duration": info.get("duration") or dur,
-            "url": info.get("webpage_url") or url}
+    title = info.get("title") or info["id"]
+    if parts > 1:
+        title = f"{title} (part {part + 1} of {parts})"
+        print(f"[fetch] marathon stream ({dur / 3600:.1f}h): clipping part {part + 1}/{parts}")
+    return {"id": info["id"], "title": title, "path": path,
+            "duration": (end - start) if parts > 1 else (info.get("duration") or dur),
+            "url": info.get("webpage_url") or url, "part": part, "parts": parts}

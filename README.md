@@ -45,7 +45,7 @@ Streams are clipped after they end, once the VOD is up (it checks every 6 hours)
 Long streams are handled differently: downloaded at 720p, transcribed with a
 faster model, and scanned one hour at a time so moments late in the stream get
 found too (`stream_clips_per_hour`, default 3). Streams longer than
-`max_stream_hours` (8) are skipped because GitHub stops a job after 6 hours.
+`max_stream_hours` (8) are clipped in 8-hour parts, one part per run (GitHub stops a job after 6 hours).
 
 For gaming / reaction streams, `layout: auto` spots a small webcam in a corner and
 switches to a split layout: webcam on top, gameplay underneath.

@@ -23,13 +23,17 @@ min_source_minutes: 5
 
 # Clip selection
 clips_per_video: 5
-min_clip_seconds: 20
-max_clip_seconds: 60
+min_clip_seconds: 15
+max_clip_seconds: 50
 # Tell the AI what your audience likes. Shapes which moments it picks.
 niche_notes: >
-  Short-form audience on TikTok / YouTube Shorts / Reels. Prefer moments with
-  a strong opening line, a clear story or opinion, a surprising fact, humor,
-  or conflict. Each clip must make sense with zero context.
+  GTA 6 / gaming stream clips for TikTok, YouTube Shorts and Reels. Viewers want:
+  the streamer's funniest or most heated reactions, chaotic moments (chases, crashes,
+  police, fails, wild NPC encounters), first reactions to new GTA 6 features or
+  locations, clutch wins and big rage moments, and banter that's funny with no
+  context. The first 2 seconds must already be loud, funny or surprising. Avoid
+  menus, loading screens, reading chat, sponsor reads and long quiet driving.
+
 model: claude-opus-5-5
 effort: medium
 
@@ -38,7 +42,7 @@ effort: medium
 long_video_minutes: 90
 stream_clips_per_hour: 3     # e.g. a 4h stream -> up to 12 clips
 max_clips_per_video: 15
-max_stream_hours: 8          # longer ones are skipped (GitHub's 6h job limit)
+max_stream_hours: 8          # marathon streams are clipped in parts this long, one part per run
 stream_whisper_model: base   # faster model so long streams fit in one run
 
 # Transcription (faster-whisper). tiny/base/small/medium. Bigger = slower + better.
