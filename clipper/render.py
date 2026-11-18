@@ -30,14 +30,14 @@ def _faces(frame) -> list:
     if _CASCADE is None:
         _CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    m = gray.shape[1] // 30
+    m = gray.shape[1] // 40
     return _CASCADE.detectMultiScale(gray, scaleFactor=1.15, minNeighbors=5, minSize=(m, m))
 
 
 def track_speaker(path: Path, start: float, end: float, w: int, step: float = 0.5):
-    """Sample frames and return [(t_rel, face_center_x)] or None if faces are rare."""
+    """Sample frames and return [(t_rel, (cx, cy, fw) | None)] or None if faces are rare."""
     cap = cv2.VideoCapture(str(path))
-    scale = 640 / w if w > 640 else 1.0
+    scale = 960 / w if w > 960 else 1.0
     samples = []
     t = start
     while t < end:
@@ -50,7 +50,7 @@ def track_speaker(path: Path, start: float, end: float, w: int, step: float = 0.
         faces = _faces(frame)
         if len(faces):
             x, y, fw, fh = max(faces, key=lambda f: f[2] * f[3])  # biggest face
-            samples.append((t - start, (x + fw / 2) / scale))
+            samples.append((t - start, ((x + fw / 2) / scale, (y + fh / 2) / scale, fw / scale)))
         else:
             samples.append((t - start, None))
         t += step
@@ -63,7 +63,7 @@ def track_speaker(path: Path, start: float, end: float, w: int, step: float = 0.
 
 def crop_plan(samples, w: int, cw: int, step: float = 0.5) -> list[tuple[float, int]]:
     """Turn noisy face positions into a few stable 'camera positions' [(t, x)]."""
-    xs = [x for _, x in samples]
+    xs = [b[0] if b else None for _, b in samples]
     # fill gaps with nearest known value
     last = next(x for x in xs if x is not None)
     for i, x in enumerate(xs):
@@ -91,6 +91,34 @@ def crop_plan(samples, w: int, cw: int, step: float = 0.5) -> list[tuple[float, 
     return plan[:40]
 
 
+def webcam_box(samples, w: int, h: int):
+    """If the face is a small webcam overlay near a corner (typical gaming / reaction
+    stream), return its median (cx, cy, fw). Otherwise None."""
+    boxes = [b for _, b in samples if b]
+    cx, cy, fw = (float(np.median([b[i] for b in boxes])) for i in range(3))
+    small = fw < 0.07 * w
+    corner = (cx < 0.25 * w or cx > 0.75 * w) and (cy < 0.33 * h or cy > 0.62 * h)
+    return (cx, cy, fw) if small and corner else None
+
+
+def split_graph(box, w: int, h: int) -> str:
+    """Webcam on top (1080x640), gameplay underneath (1080x1280)."""
+    cx, cy, fw = box
+    cam_w = min(w, int(fw * 5))
+    cam_h = int(cam_w * 640 / 1080)
+    if cam_h > h:
+        cam_h, cam_w = h, int(h * 1080 / 640)
+    cam_w, cam_h = cam_w // 2 * 2, cam_h // 2 * 2
+    cam_x = int(min(max(cx - cam_w / 2, 0), w - cam_w)) // 2 * 2
+    cam_y = int(min(max(cy - cam_h * 0.45, 0), h - cam_h)) // 2 * 2
+    game_w = min(w, int(h * 1080 / 1280)) // 2 * 2
+    game_x = (w - game_w) // 2 // 2 * 2
+    return (f"[0:v]split[a][b];"
+            f"[a]crop={cam_w}:{cam_h}:{cam_x}:{cam_y},scale=1080:640,setsar=1[top];"
+            f"[b]crop={game_w}:{h}:{game_x}:0,scale=1080:1280,setsar=1[bot];"
+            f"[top][bot]vstack[base]")
+
+
 def _crop_x_expr(plan) -> str:
     expr = str(plan[-1][1])
     for (t_next, _), (_, x) in reversed(list(zip(plan[1:], plan[:-1]))):
@@ -113,7 +141,7 @@ def _ts(t: float) -> str:
 
 
 def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str | None,
-              cfg: dict) -> str:
+              cfg: dict, title_y: int = 230) -> str:
     c = cfg
     font, size = c["font"], c["font_size"]
     col, hi = _ass_color(c["color"]), _ass_color(c["highlight_color"])
@@ -127,7 +155,7 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
         f"Style: Cap,{font},{size},{col},{col},&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,"
         f"{c['outline']},2,2,70,70,{c['position_from_bottom']},1",
         f"Style: Title,{font},{int(size * 0.72)},&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,"
-        "-1,0,0,0,100,100,0,0,3,18,0,8,90,90,230,1",
+        f"-1,0,0,0,100,100,0,0,3,18,0,8,90,90,{title_y},1",
         "", "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
@@ -176,20 +204,27 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict) -> str:
     cw = int(h * 9 / 16) // 2 * 2
 
     layout = cfg["layout"]
-    plan = None
+    plan = box = None
     if cw >= w:  # source already vertical-ish
         layout = "blur"
-    elif layout == "auto":
+    elif layout in ("auto", "split"):
         samples = track_speaker(src, start, end, w)
-        if samples:
+        if not samples:
+            layout = "blur"
+        elif layout == "split":
+            boxes = [b for _, b in samples if b]
+            box = tuple(float(np.median([b[i] for b in boxes])) for i in range(3))
+        elif (box := webcam_box(samples, w, h)):
+            layout = "split"
+        else:
             plan = crop_plan(samples, w, cw)
             layout = "crop"
-        else:
-            layout = "blur"
     elif layout == "crop":
         plan = [(0.0, (w - cw) // 2 // 2 * 2)]
 
-    if layout == "crop":
+    if layout == "split":
+        graph = split_graph(box, w, h)
+    elif layout == "crop":
         x = _crop_x_expr(plan)
         graph = f"[0:v]crop={cw}:{h}:{x}:0,scale={OUT_W}:{OUT_H},setsar=1[base]"
     else:
@@ -203,7 +238,8 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict) -> str:
     if cap["enabled"]:
         ass_name = out.stem + ".ass"
         (workdir / ass_name).write_text(build_ass(
-            clip["words"], start, end, clip.get("title") if cap.get("show_title", True) else None, cap))
+            clip["words"], start, end, clip.get("title") if cap.get("show_title", True) else None, cap,
+            title_y=610 if layout == "split" else 230))
         graph += f";[base]ass={ass_name}[v]"
     else:
         graph += ";[base]null[v]"

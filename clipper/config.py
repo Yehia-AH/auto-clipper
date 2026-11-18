@@ -16,6 +16,12 @@ DEFAULTS = {
     "model": "claude-opus-5-5",
     "effort": "medium",
     "whisper_model": "small",
+    "long_video_minutes": 90,
+    "stream_whisper_model": "base",
+    "stream_clips_per_hour": 3,
+    "max_clips_per_video": 15,
+    "max_stream_hours": 8,
+    "processing_ratio": 0.5,
     "language": None,
     "layout": "auto",
     "captions": {

@@ -49,12 +49,48 @@ def _format_transcript(segments: list[dict]) -> str:
     return "\n".join(f"[{s['start']:.2f}-{s['end']:.2f}] {s['text']}" for s in segments)
 
 
+def _hms(t: float) -> str:
+    return f"{int(t // 3600)}:{int(t % 3600 // 60):02d}:{int(t % 60):02d}"
+
+
 def pick_clips(segments: list[dict], title: str, cfg: dict) -> list[dict]:
+    """Short videos: one request. Long streams: one request per ~hour of footage,
+    so moments deep into a stream get the same attention as the start."""
+    total = segments[-1]["end"]
+    if total <= cfg["long_video_minutes"] * 60:
+        return _ask(segments, title, cfg["clips_per_video"], "", cfg)
+
+    window = 60 * 60
+    chunks, cur, cur_start = [], [], segments[0]["start"]
+    for s in segments:
+        if cur and s["start"] - cur_start > window:
+            chunks.append(cur)
+            cur, cur_start = [], s["start"]
+        cur.append(s)
+    if cur:
+        chunks.append(cur)
+
+    picks = []
+    for i, chunk in enumerate(chunks, 1):
+        hours = max((chunk[-1]["end"] - chunk[0]["start"]) / 3600, 0.25)
+        n = max(1, round(cfg["stream_clips_per_hour"] * hours))
+        note = (f"This is part {i} of {len(chunks)} of a live stream VOD "
+                f"({_hms(chunk[0]['start'])} to {_hms(chunk[-1]['end'])}). Streams have "
+                "downtime, chatter with chat, and loading screens: skip those, only pick "
+                "moments that work for someone who never watched the stream.\n\n")
+        got = _ask(chunk, title, n, note, cfg)
+        print(f"[select] part {i}/{len(chunks)}: {len(got)} moments")
+        picks.extend(got)
+    return picks
+
+
+def _ask(segments: list[dict], title: str, n: int, note: str, cfg: dict) -> list[dict]:
     client = anthropic.Anthropic()
     prompt = (
         f"Video title: {title}\n\n"
         f"Audience notes: {cfg['niche_notes']}\n\n"
-        f"Pick up to {cfg['clips_per_video']} clips, each between "
+        f"{note}"
+        f"Pick up to {n} clips, each between "
         f"{cfg['min_clip_seconds']} and {cfg['max_clip_seconds']} seconds long. "
         "Fewer is fine if the video doesn't have that many strong moments. "
         "Write titles, captions and hashtags in the language of the video.\n\n"

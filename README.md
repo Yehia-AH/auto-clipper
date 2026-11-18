@@ -36,6 +36,23 @@ Edit `config.yaml` and add channels or playlists under `sources:`. Also set
 **Actions → Auto Clip → Run workflow.** Paste a video URL to test one right away,
 or leave it empty to check your sources. After that it runs every 6 hours on its own.
 
+## Live streams
+Add a channel and it clips both uploads and past live streams:
+- `https://www.youtube.com/@Creator`: uploads + the /streams tab
+- `https://www.twitch.tv/creator`: past broadcasts (VODs)
+
+Streams are clipped after they end, once the VOD is up (it checks every 6 hours).
+Long streams are handled differently: downloaded at 720p, transcribed with a
+faster model, and scanned one hour at a time so moments late in the stream get
+found too (`stream_clips_per_hour`, default 3). Streams longer than
+`max_stream_hours` (8) are skipped because GitHub stops a job after 6 hours.
+
+For gaming / reaction streams, `layout: auto` spots a small webcam in a corner and
+switches to a split layout: webcam on top, gameplay underneath.
+
+Real-time clipping *while* a stream is live isn't supported: that needs a
+computer that's on for the whole stream.
+
 ## Posting
 Each clip arrives in Telegram with the caption + hashtags already written. Save
 the video, open TikTok / Shorts / Reels, paste the caption, post. Everything is
@@ -46,7 +63,7 @@ if a clip underperforms, and avoid posting the exact same file to many accounts.
 
 ## Settings worth knowing (`config.yaml`)
 - `clips_per_video`, `min_clip_seconds`, `max_clip_seconds`
-- `layout`: `auto` (face tracking), `crop`, or `blur` (best for gameplay / screen recordings)
+- `layout`: `auto` (face tracking + webcam detection), `split` (webcam on top, game below), `crop`, or `blur` (screen recordings)
 - `captions`: font, size, colors, words per line, uppercase, hook title on/off
 - `whisper_model`: `small` is a good balance; `medium` is more accurate but slower
 - `max_videos_per_run`: keeps each run inside GitHub's 6-hour limit

@@ -10,7 +10,9 @@ def transcribe(video: Path, model_name: str, language: str | None, cache: Path) 
 
     from faster_whisper import WhisperModel
 
-    model = WhisperModel(model_name, device="cpu", compute_type="int8")
+    import os
+    model = WhisperModel(model_name, device="cpu", compute_type="int8",
+                         cpu_threads=os.cpu_count() or 4)
     segments, info = model.transcribe(
         str(video), word_timestamps=True, vad_filter=True, language=language
     )

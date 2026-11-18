@@ -7,8 +7,10 @@
 import argparse
 import datetime as dt
 import json
+import os
 import re
 import shutil
+import time
 from pathlib import Path
 
 from . import deliver, fetch
@@ -33,8 +35,11 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"\n=== {video['title']} ===")
 
-    segments = transcribe(video["path"], cfg["whisper_model"], cfg["language"],
-                          out_dir / "transcript.json")
+    is_stream = (video.get("duration") or 0) > cfg["long_video_minutes"] * 60
+    model = cfg["stream_whisper_model"] if is_stream else cfg["whisper_model"]
+    t0 = time.time()
+    segments = transcribe(video["path"], model, cfg["language"], out_dir / "transcript.json")
+    print(f"[transcribe] took {(time.time() - t0) / 60:.0f} min with '{model}'")
     if not segments:
         print("[skip] no speech found")
         return None
@@ -42,7 +47,8 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
     picks = pick_clips(segments, video["title"], cfg)
     clips = snap_to_words(picks, all_words(segments), cfg)
     clips.sort(key=lambda c: -c["score"])
-    print(f"[select] {len(picks)} suggested, {len(clips)} usable")
+    clips = clips[: cfg["max_clips_per_video"]]
+    print(f"[select] {len(picks)} suggested, {len(clips)} kept")
 
     manifest = []
     for i, clip in enumerate(clips, 1):
@@ -88,29 +94,50 @@ def main() -> None:
         done.append(out)
     else:
         state = fetch.load_state()
+        state.setdefault("failures", {})
         if args.cmd == "run":
             if not cfg["sources"]:
                 print("No sources in config.yaml yet. Add a channel or playlist URL.")
                 return
             todo = fetch.list_new_videos(cfg, state)[: cfg["max_videos_per_run"]]
             print(f"{len(todo)} new video(s) to clip")
-            urls = [v["url"] for v in todo]
         else:
-            urls = args.urls
-        for url in urls:
+            todo = [{"id": None, "url": u, "duration": 0} for u in args.urls]
+
+        # GitHub stops a job after 6h. RUN_BUDGET_MINUTES (set by the workflow) makes
+        # us leave a video for the next run instead of getting killed halfway through.
+        budget = float(os.environ.get("RUN_BUDGET_MINUTES") or 0) * 60
+        started = time.time()
+        for item in todo:
+            url = item["url"]
+            est = item["duration"] * cfg["processing_ratio"] + 15 * 60
+            if budget and done and time.time() - started + est > budget:
+                print(f"[later] not enough time left for {url}, next run will take it")
+                continue
+            key = item["id"] or url
             try:
-                video = fetch.download(url, work)
+                video = fetch.download(url, work, cfg)
                 out = process_video(video, cfg)
                 state["processed"][video["id"]] = {
                     "title": video["title"], "date": f"{dt.date.today()}",
                     "output": str(out.relative_to(ROOT)) if out else None}
-                fetch.save_state(state)  # save after each video so progress isn't lost
+                state["failures"].pop(key, None)
                 done.append(out)
+            except fetch.NotReady as e:
+                print(f"[later] {url}: {e}")
+            except fetch.Skip as e:
+                print(f"[skip] {url}: {e}")
+                if item["id"]:
+                    state["processed"][item["id"]] = {"date": f"{dt.date.today()}", "skipped": str(e)}
             except Exception as e:
                 print(f"[error] {url}: {e}")
+                n = state["failures"][key] = state["failures"].get(key, 0) + 1
+                if n >= 3 and item["id"]:  # stop retrying a video that keeps failing
+                    state["processed"][item["id"]] = {"date": f"{dt.date.today()}", "error": str(e)[:300]}
                 if deliver.telegram_enabled():
-                    deliver.send_message(f"⚠️ Clipper failed on {url}: {str(e)[:300]}")
+                    deliver.send_message(f"⚠️ Clipper failed on {url} (try {n}/3): {str(e)[:300]}")
             finally:
+                fetch.save_state(state)  # save after each video so progress isn't lost
                 shutil.rmtree(work, ignore_errors=True)
 
     done = [d for d in done if d]

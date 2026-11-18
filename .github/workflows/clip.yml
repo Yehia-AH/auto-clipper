@@ -24,7 +24,7 @@ concurrency:
 jobs:
   clip:
     runs-on: ubuntu-latest
-    timeout-minutes: 340
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v4
 
@@ -52,6 +52,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           YTDLP_COOKIES: ${{ secrets.YTDLP_COOKIES }}
+          RUN_BUDGET_MINUTES: "320"
           URLS: ${{ inputs.urls }}
           CLIPS: ${{ inputs.clips }}
         run: |
@@ -64,10 +65,12 @@ jobs:
           fi
 
       - name: Publish clips as GitHub releases
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           i=0
+          [ -f .last_run.json ] || exit 0
           for dir in $(python -c "import json;print(' '.join(json.load(open('.last_run.json'))))"); do
             i=$((i+1))
             ls "$dir"/*.mp4 >/dev/null 2>&1 || continue
@@ -82,9 +85,11 @@ jobs:
           done
 
       - name: Remember processed videos
+        if: always()
         run: |
           git config user.name "auto-clipper"
           git config user.email "auto-clipper@users.noreply.github.com"
+          git pull --rebase -q || true
           git add state/processed.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "Update processed videos"

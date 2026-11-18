@@ -6,9 +6,13 @@
 # Channels / playlists to watch. New uploads get clipped automatically.
 # Only list content you have permission to clip (your own, or a
 # clipping campaign that allows it).
+#   https://www.youtube.com/@Creator          -> uploads AND past live streams
+#   https://www.youtube.com/@Creator/streams  -> only past live streams
+#   https://www.twitch.tv/creator             -> past Twitch broadcasts (VODs)
+#   https://www.youtube.com/playlist?list=... -> a playlist
 sources:
-  # - https://www.youtube.com/@SomeCreator/videos
-  # - https://www.youtube.com/playlist?list=PLxxxxxxxx
+  # - https://www.youtube.com/@SomeCreator
+  # - https://www.twitch.tv/somestreamer
 
 # How many of the newest uploads to look at per source each run.
 lookback_videos: 3
@@ -29,6 +33,14 @@ niche_notes: >
 model: claude-opus-5-5
 effort: medium
 
+# Live streams (anything longer than long_video_minutes counts as a stream).
+# Streams are clipped once they've ended and the VOD is up, usually within a few hours.
+long_video_minutes: 90
+stream_clips_per_hour: 3     # e.g. a 4h stream -> up to 12 clips
+max_clips_per_video: 15
+max_stream_hours: 8          # longer ones are skipped (GitHub's 6h job limit)
+stream_whisper_model: base   # faster model so long streams fit in one run
+
 # Transcription (faster-whisper). tiny/base/small/medium. Bigger = slower + better.
 whisper_model: small
 language: null        # e.g. "en" to force; null = auto-detect
@@ -36,7 +48,9 @@ language: null        # e.g. "en" to force; null = auto-detect
 # Video layout
 #   auto  -> follow the speaker's face; falls back to "blur" when no face is found
 #   crop  -> always center-crop
-#   blur  -> full frame on a blurred background (good for gameplay / screens)
+#   auto  -> also switches to "split" when it sees a small webcam in a corner
+#   split -> webcam on top, gameplay below (gaming / reaction streams)
+#   blur  -> full frame on a blurred background (good for screen recordings)
 layout: auto
 
 # Captions
