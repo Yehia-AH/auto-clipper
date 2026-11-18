@@ -17,8 +17,10 @@ on:
 permissions:
   contents: write
 
+# Hourly checks share one lane, so the same stream is never clipped twice at once.
+# Runs where you paste video URLs get their own lane and run in parallel.
 concurrency:
-  group: clipper
+  group: ${{ inputs.urls != '' && format('clipper-manual-{0}', github.run_id) || 'clipper-auto' }}
   cancel-in-progress: false
 
 jobs:
@@ -89,9 +91,18 @@ jobs:
         run: |
           git config user.name "auto-clipper"
           git config user.email "auto-clipper@users.noreply.github.com"
-          git pull --rebase -q || true
-          git add state/processed.json 2>/dev/null || true
-          if ! git diff --cached --quiet; then
-            git commit -m "Update processed videos"
-            git push
-          fi
+          [ -f state/processed.json ] || exit 0
+          cp state/processed.json /tmp/mine.json
+          for attempt in 1 2 3 4 5; do
+            git fetch -q origin main
+            git reset -q --hard origin/main
+            git show origin/main:state/processed.json > /tmp/remote.json 2>/dev/null || echo '{}' > /tmp/remote.json
+            cp /tmp/mine.json state/processed.json
+            python scripts/save_state.py /tmp/remote.json state/processed.json
+            git add state/processed.json
+            git diff --cached --quiet && exit 0
+            git commit -q -m "Update processed videos"
+            git push -q origin HEAD:main && exit 0
+            sleep $((attempt * 5))
+          done
+          echo "Could not save progress after 5 tries" && exit 1
