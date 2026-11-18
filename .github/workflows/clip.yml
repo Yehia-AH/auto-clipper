@@ -1,8 +1,8 @@
 name: Auto Clip
 run-name: >-
-  ${{ inputs.urls != '' && format('✂️ Clip: {0}', inputs.urls)
-  || (github.event_name == 'schedule' && '⏰ Hourly check (watched streamers)'
-  || '🔎 Check watched streamers now') }}
+  ${{ inputs.urls != '' && format('✂️ {0}: {1}', inputs.campaign != 'auto-detect' && inputs.campaign || 'Clip', inputs.urls)
+  || (github.event_name == 'schedule' && '⏰ Clix: hourly check'
+  || '🔎 Clix: check now') }}
 
 on:
   schedule:
@@ -13,6 +13,14 @@ on:
         description: "Video URL(s) to clip right now, space-separated. Leave empty to check your sources."
         required: false
         default: ""
+      campaign:
+        description: "Which campaign the pasted link(s) belong to (sets the run name and the caption rules)"
+        type: choice
+        options:
+          - auto-detect
+          - SypherPK
+          - Clix
+        default: auto-detect
       clips:
         description: "How many clips per video (empty = config.yaml value)"
         required: false
@@ -62,9 +70,11 @@ jobs:
           PYTHONUNBUFFERED: "1"   # show progress in the log as it happens
           URLS: ${{ inputs.urls }}
           CLIPS: ${{ inputs.clips }}
+          CAMPAIGN: ${{ inputs.campaign }}
         run: |
           EXTRA=""
           if [ -n "$CLIPS" ]; then EXTRA="--clips $CLIPS"; fi
+          if [ -n "$CAMPAIGN" ] && [ "$CAMPAIGN" != "auto-detect" ]; then EXTRA="$EXTRA --campaign $CAMPAIGN"; fi
           if [ -n "$URLS" ]; then
             python -m clipper $EXTRA url $URLS
           else

@@ -102,6 +102,7 @@ def main() -> None:
     f.add_argument("path")
     f.add_argument("--title")
     ap.add_argument("--clips", type=int, help="override clips_per_video")
+    ap.add_argument("--campaign", help="apply this source's rules (its name in config.yaml)")
     args = ap.parse_args()
 
     cfg = load_config()
@@ -131,7 +132,14 @@ def main() -> None:
                     todo.append({"id": vid, "url": vurl, "duration": 0})
             print(f"{len(todo)} new video(s) to clip")
         else:
-            todo = [{"id": None, "url": u, "duration": 0} for u in args.urls]
+            forced = None
+            if args.campaign:
+                forced = next((s for s in cfg["sources"]
+                               if s["name"].lower() == args.campaign.lower()), None)
+                print(f"[campaign] using {args.campaign} rules" if forced
+                      else f"[campaign] no source named {args.campaign} in config.yaml")
+            todo = [{"id": None, "url": u, "duration": 0, **({"source": forced} if forced else {})}
+                    for u in args.urls]
 
         # GitHub stops a job after 6h. RUN_BUDGET_MINUTES (set by the workflow) makes
         # us leave a video for the next run instead of getting killed halfway through.
