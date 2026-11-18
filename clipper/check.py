@@ -34,7 +34,8 @@ def check_claude(cfg) -> str:
 
 def check_telegram() -> str:
     import requests
-    token, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+    token = (os.environ.get("TELEGRAM_BOT_TOKEN") or "").strip()
+    chat = (os.environ.get("TELEGRAM_CHAT_ID") or "").strip()
     if not token and not chat:
         return f"{SKIP} Telegram: not set up (clips will only go to GitHub Releases)"
     if not token or not chat:
@@ -45,8 +46,9 @@ def check_telegram() -> str:
     if r.ok:
         return f"{OK} Telegram: test message sent, check your phone"
     desc = r.json().get("description", r.text)[:150] if r.headers.get("content-type", "").startswith("application/json") else r.text[:150]
-    if r.status_code == 401:
-        return f"{BAD} Telegram: bot token is wrong ({desc})"
+    if r.status_code in (401, 404):
+        return (f"{BAD} Telegram: bot token is wrong ({desc}). Copy it again from @BotFather: "
+                "it looks like 123456789:AAH..., with no spaces, quotes or the word 'bot' in front")
     if "chat not found" in desc.lower():
         return f"{BAD} Telegram: chat not found. Press Start in your bot, and check TELEGRAM_CHAT_ID ({desc})"
     return f"{BAD} Telegram: {desc}"

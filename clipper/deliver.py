@@ -6,16 +6,16 @@ import requests
 
 
 def telegram_enabled() -> bool:
-    return bool(os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_CHAT_ID"))
+    return bool(os.environ.get("TELEGRAM_BOT_TOKEN", "").strip() and os.environ.get("TELEGRAM_CHAT_ID", "").strip())
 
 
 def _api(method: str) -> str:
-    return f"https://api.telegram.org/bot{os.environ['TELEGRAM_BOT_TOKEN']}/{method}"
+    return f"https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"].strip()}/{method}"
 
 
 def send_message(text: str) -> None:
     requests.post(_api("sendMessage"), timeout=60, data={
-        "chat_id": os.environ["TELEGRAM_CHAT_ID"], "text": text[:4000],
+        "chat_id": os.environ["TELEGRAM_CHAT_ID"].strip(), "text": text[:4000],
         "disable_web_page_preview": True})
 
 
@@ -26,7 +26,7 @@ def send_clip(video: Path, post_text: str) -> None:
         return
     with video.open("rb") as f:
         r = requests.post(_api("sendVideo"), timeout=600, data={
-            "chat_id": os.environ["TELEGRAM_CHAT_ID"],
+            "chat_id": os.environ["TELEGRAM_CHAT_ID"].strip(),
             "caption": post_text[:1024],
             "supports_streaming": True,
         }, files={"video": (video.name, f, "video/mp4")})
