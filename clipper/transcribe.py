@@ -1,6 +1,22 @@
 """Word-level transcription with faster-whisper (runs on CPU)."""
 import json
+import os
+import subprocess
 from pathlib import Path
+
+import numpy as np
+
+SAMPLE_RATE = 16000
+
+
+def load_audio(video: Path) -> np.ndarray:
+    """Decode the audio track to 16 kHz mono float32 with ffmpeg.
+    (faster-whisper's own decoder breaks with newer PyAV releases.)"""
+    raw = subprocess.run(
+        ["ffmpeg", "-nostdin", "-loglevel", "error", "-i", str(video), "-vn",
+         "-ac", "1", "-ar", str(SAMPLE_RATE), "-f", "s16le", "-"],
+        check=True, capture_output=True).stdout
+    return np.frombuffer(raw, np.int16).astype(np.float32) / 32768.0
 
 
 def transcribe(video: Path, model_name: str, language: str | None, cache: Path) -> list[dict]:
@@ -10,11 +26,13 @@ def transcribe(video: Path, model_name: str, language: str | None, cache: Path) 
 
     from faster_whisper import WhisperModel
 
-    import os
+    audio = load_audio(video)
+    if audio.size == 0:
+        return []
     model = WhisperModel(model_name, device="cpu", compute_type="int8",
                          cpu_threads=os.cpu_count() or 4)
     segments, info = model.transcribe(
-        str(video), word_timestamps=True, vad_filter=True, language=language
+        audio, word_timestamps=True, vad_filter=True, language=language
     )
     out = []
     for s in segments:
