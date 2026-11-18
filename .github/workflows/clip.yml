@@ -148,13 +148,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # GitHub's hourly schedule can be late or skipped. If this run clipped
-          # something and a long stream still has parts waiting, start the next
-          # run right away. (Stops by itself once everything is caught up.)
+          # GitHub's hourly schedule can be late or skipped. While a stream still has
+          # parts waiting (e.g. a live marathon), keep a run going: start the next
+          # one now, or after 30 min if this run was already caught up.
+          # Stops by itself once the stream has ended and every part is clipped.
           clipped=$(python -c "import json;print(len(json.load(open('.last_run.json'))))" 2>/dev/null || echo 0)
           pending=$(python -c "import json;print(len(json.load(open('state/processed.json')).get('partial',{})))" 2>/dev/null || echo 0)
           echo "clipped=$clipped pending=$pending"
-          if [ "$clipped" -gt 0 ] && [ "$pending" -gt 0 ]; then
+          if [ "$pending" -gt 0 ]; then
+            if [ "$clipped" -eq 0 ]; then
+              # caught up with a live stream: wait for its next hour to finish
+              echo "Waiting 30 min for the stream's next hour..."; sleep 1800
+            fi
             gh workflow run clip.yml --ref main && echo "Started the next run"
           fi
 
