@@ -1,0 +1,7 @@
+output/
+.work/
+.last_run.json
+__pycache__/
+*.pyc
+.venv/
+cookies.txt

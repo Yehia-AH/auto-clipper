@@ -1,0 +1,68 @@
+# Auto Clipper ✂️
+
+Turns long videos (podcasts, streams, interviews) into ready-to-post vertical
+clips, automatically, every 6 hours. You only do the posting.
+
+```
+new upload on a watched channel
+  → download (yt-dlp)
+  → transcribe with word timings (Whisper)
+  → Claude picks the best 30–60s moments + writes title, caption, hashtags
+  → cut to 9:16, camera follows the speaker's face (or blurred-background layout)
+  → burn in word-by-word highlighted captions + hook title
+  → sends each clip + caption to your phone on Telegram, and saves them as a GitHub release
+```
+
+## One-time setup (≈10 minutes)
+
+### 1. Add secrets
+Repo → **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Required | What it is |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | yes | From console.anthropic.com → API Keys. Picks the moments (a few cents per video). |
+| `TELEGRAM_BOT_TOKEN` | recommended | Clips land on your phone. Message **@BotFather** on Telegram → `/newbot` → copy the token. |
+| `TELEGRAM_CHAT_ID` | recommended | Send any message to your new bot, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy `chat.id`. |
+| `YTDLP_COOKIES` | if downloads fail | YouTube often blocks GitHub's servers ("Sign in to confirm you're not a bot"). Export your YouTube cookies with the "Get cookies.txt LOCALLY" browser extension and paste the whole file in here. Use a spare Google account. |
+
+### 2. Pick what to clip
+Edit `config.yaml` and add channels or playlists under `sources:`. Also set
+`niche_notes` to describe your audience. That's what steers which moments get picked.
+
+> Only clip content you have the rights to: your own, or creators running a
+> clipping campaign (Whop Content Rewards, Vyro, etc.) that pays you for clips.
+
+### 3. Run it
+**Actions → Auto Clip → Run workflow.** Paste a video URL to test one right away,
+or leave it empty to check your sources. After that it runs every 6 hours on its own.
+
+## Posting
+Each clip arrives in Telegram with the caption + hashtags already written. Save
+the video, open TikTok / Shorts / Reels, paste the caption, post. Everything is
+also under **Releases** in this repo.
+
+Tips: post 2–4 clips a day per account, change the first second of the hook
+if a clip underperforms, and avoid posting the exact same file to many accounts.
+
+## Settings worth knowing (`config.yaml`)
+- `clips_per_video`, `min_clip_seconds`, `max_clip_seconds`
+- `layout`: `auto` (face tracking), `crop`, or `blur` (best for gameplay / screen recordings)
+- `captions`: font, size, colors, words per line, uppercase, hook title on/off
+- `whisper_model`: `small` is a good balance; `medium` is more accurate but slower
+- `max_videos_per_run`: keeps each run inside GitHub's 6-hour limit
+
+## Run on your own computer
+Needs Python 3.10+ and ffmpeg.
+```bash
+pip install -r requirements.txt
+export ANTHROPIC_API_KEY=...
+python -m clipper url "https://www.youtube.com/watch?v=..."
+python -m clipper file my_podcast.mp4
+python -m clipper run          # check all sources in config.yaml
+```
+Clips are written to `output/`.
+
+## Costs
+GitHub Actions is free for public repos and has 2,000 free minutes/month for
+private repos (a 1-hour video takes roughly 20–40 min). Claude costs a few
+cents per video.

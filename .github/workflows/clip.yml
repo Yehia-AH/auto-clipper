@@ -1,0 +1,92 @@
+name: Auto Clip
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"   # every 6 hours
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: "Video URL(s) to clip right now, space-separated. Leave empty to check your sources."
+        required: false
+        default: ""
+      clips:
+        description: "How many clips per video (empty = config.yaml value)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clipper
+  cancel-in-progress: false
+
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-${{ hashFiles('config.yaml') }}
+          restore-keys: whisper-
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      - name: Find moments, cut and caption clips
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YTDLP_COOKIES: ${{ secrets.YTDLP_COOKIES }}
+          URLS: ${{ inputs.urls }}
+          CLIPS: ${{ inputs.clips }}
+        run: |
+          EXTRA=""
+          if [ -n "$CLIPS" ]; then EXTRA="--clips $CLIPS"; fi
+          if [ -n "$URLS" ]; then
+            python -m clipper $EXTRA url $URLS
+          else
+            python -m clipper $EXTRA run
+          fi
+
+      - name: Publish clips as GitHub releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          i=0
+          for dir in $(python -c "import json;print(' '.join(json.load(open('.last_run.json'))))"); do
+            i=$((i+1))
+            ls "$dir"/*.mp4 >/dev/null 2>&1 || continue
+            title=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['title'][:100])" "$dir/manifest.json")
+            {
+              echo "Clips from: $title"
+              echo
+              for t in "$dir"/*.txt; do echo "### $(basename "${t%.txt}")"; echo; cat "$t"; echo; done
+            } > notes.md
+            gh release create "clips-${GITHUB_RUN_ID}-${i}" "$dir"/*.mp4 "$dir"/*.txt \
+              --title "✂️ $title" --notes-file notes.md
+          done
+
+      - name: Remember processed videos
+        run: |
+          git config user.name "auto-clipper"
+          git config user.email "auto-clipper@users.noreply.github.com"
+          git add state/processed.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Update processed videos"
+            git push
+          fi
