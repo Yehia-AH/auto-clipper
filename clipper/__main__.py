@@ -18,6 +18,7 @@ from .config import ROOT, load_config
 from .render import render_clip
 from .highlights import pick_clips, snap_to_words
 from .chat import add_chat, chat_counts
+from .gta_cues import classify_text
 from .transcribe import add_energy, all_words, transcribe
 
 
@@ -68,6 +69,10 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
         add_energy(video["path"], segments)
     except Exception as e:  # energy is a bonus signal; never fail a video over it
         print(f"[energy] skipped: {e}")
+    for seg in segments:  # spoken GTA / gaming events (crash, chase, stunt, reaction...)
+        cues = [c.category for c in classify_text(seg["text"])]
+        if cues:
+            seg["cues"] = cues
     spikes = []
     if video.get("twitch_vod"):
         off = video.get("offset") or 0

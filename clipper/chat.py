@@ -3,6 +3,7 @@ clip-worthy happens, so message spikes are the best "this moment hit" signal.
 
 Uses the same public chat-replay API the Twitch website uses. If Twitch refuses,
 everything still works without the chat signal."""
+import re
 import time
 
 import requests
@@ -16,7 +17,7 @@ PERSISTED_HASH = "b70a3591ff0f4e0313d126c6a1502d79a1c02baebb288227c582044aa76adf
 RAW_QUERY = """query($id: ID!, $offset: Int, $cursor: Cursor) {
   video(id: $id) {
     comments(contentOffsetSeconds: $offset, after: $cursor) {
-      edges { cursor node { contentOffsetSeconds } }
+      edges { cursor node { contentOffsetSeconds message { fragments { text } } } }
       pageInfo { hasNextPage }
     }
   }
@@ -60,9 +61,29 @@ def _request(session, vod_id: str, offset: int | None, cursor: str | None, raw: 
     return comments
 
 
+_NOMINATION = re.compile(r"\b(?:clip (?:that|this|it)|clip it|clipworthy|clip worthy|clippp+|save (?:that|this))\b")
+_NO_NOMINATION = re.compile(r"\b(?:don'?t|do not|never|not|no need to)\b")
+
+
+def is_nomination(text: str) -> bool:
+    """A viewer asking for a clip ("clip that", "clip it"). Pattern adapted from
+    ColinGPT9's GTA Clips Kitty plugin (MIT)."""
+    t = text.casefold().replace("\u2019", "'")
+    for clause in re.split(r"[.!?;\n]|\bbut\b", t):
+        m = _NOMINATION.search(clause)
+        if m and not _NO_NOMINATION.search(clause[:m.end()]):
+            return True
+    return False
+
+
+NOMINATIONS: dict[int, int] = {}
+
+
 def chat_counts(vod_id: str, start: float, end: float, max_seconds: float = 240) -> dict[int, int] | None:
     """Messages per 10 s bucket between start and end (VOD seconds), keyed by the
-    bucket's start relative to `start`. None if chat replay isn't available."""
+    bucket's start relative to `start`. None if chat replay isn't available.
+    "Clip it" nominations per bucket are left in NOMINATIONS."""
+    NOMINATIONS.clear()
     vod_id = str(vod_id).lstrip("v")
     s = requests.Session()
     s.headers.update({"Client-Id": CLIENT_ID, "Content-Type": "text/plain;charset=UTF-8"})
@@ -82,6 +103,9 @@ def chat_counts(vod_id: str, start: float, end: float, max_seconds: float = 240)
                 if start <= off < end:
                     b = int((off - start) // BUCKET) * BUCKET
                     counts[b] = counts.get(b, 0) + 1
+                    frags = (((e.get("node") or {}).get("message") or {}).get("fragments") or [])
+                    if is_nomination(" ".join(f.get("text") or "" for f in frags)):
+                        NOMINATIONS[b] = NOMINATIONS.get(b, 0) + 1
             if last_off >= end or not (c.get("pageInfo") or {}).get("hasNextPage") or not edges:
                 break
             cursor = edges[-1].get("cursor")
@@ -110,6 +134,9 @@ def add_chat(segments: list[dict], counts: dict[int, int]) -> list[dict]:
         ratio = peak / median
         # 1x typical -> ~3, 2x -> ~6, 3x+ -> ~9-10
         s["chat"] = max(0, min(10, round(3 * ratio)))
+        noms = sum(NOMINATIONS.get(b, 0) for b in range(a, int(s["end"]) + 20, BUCKET))
+        if noms:
+            s["clip_it"] = noms
     spikes = sorted(({"t": b, "rate": n, "x": round(n / median, 1)} for b, n in counts.items()
                      if n >= 2 * median and n >= 5), key=lambda d: -d["rate"])[:15]
     return sorted(spikes, key=lambda d: d["t"])

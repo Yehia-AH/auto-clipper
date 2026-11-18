@@ -57,6 +57,14 @@ around it: start about 15-20 seconds BEFORE the spike so the viewer gets the set
 and end just after the reaction / punchline. A moment with both high energy and high \
 chat is almost always the best clip available.
 
+Lines may show '(Nx "clip it" in chat)': viewers literally asking for that moment to \
+be clipped. Treat that as a direct vote for the moment.
+
+Lines may show "(event: ...)": the streamer clearly describes something happening right \
+now (chase, crash, stunt, combat, npc_chaos, funny_dialogue, reaction, milestone). \
+These are strong candidates, especially combined with high energy or chat. The setup \
+usually comes right before the line, so start the clip a little earlier.
+
 Use the timestamps in the transcript exactly: a clip's start must be the start time \
 of the line it opens on, and its end must be the end time of the line it closes on. \
 Clips must not overlap. Sort clips by score, best first."""
@@ -67,6 +75,8 @@ def _format_transcript(segments: list[dict]) -> str:
         f"[{s['start']:.2f}-{s['end']:.2f}]"
         + (f" (energy {s['energy']})" if "energy" in s else "")
         + (f" (chat {s['chat']})" if "chat" in s else "")
+        + (f" ({s['clip_it']}x \"clip it\" in chat)" if s.get("clip_it") else "")
+        + (f" (event: {', '.join(s['cues'])})" if s.get("cues") else "")
         + f" {s['text']}" for s in segments)
 
 
