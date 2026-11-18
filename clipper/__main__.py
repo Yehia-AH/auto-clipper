@@ -110,6 +110,19 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
         print(f"[select] dropped {len(weak)} weak moment(s) scoring under {cfg['min_score']}")
     is_part = video.get("parts", 1) > 1 or bool(video.get("part"))
     cap = cfg["stream_clips_per_hour"] if is_part else cfg["max_clips_per_video"]
+    if src.get("require_game"):
+        # campaign only pays for this game: drop IRL / chatting / other-game moments
+        from .gamecheck import shows_game
+        kept = []
+        for c in clips:
+            if len(kept) >= cap:
+                break
+            ok, what = shows_game(video["path"], c["start"], c["end"], src["require_game"], cfg)
+            if ok:
+                kept.append(c)
+            else:
+                print(f"[gamecheck] dropped '{c['title']}': not {src['require_game']} ({what})")
+        clips = kept
     clips = [apply_campaign(c, src) for c in clips[:cap]]
     print(f"[select] {len(picks)} suggested, {len(clips)} kept")
 
