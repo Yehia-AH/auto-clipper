@@ -56,7 +56,8 @@ def batch_label(video: dict, src: dict) -> str:
     return " · ".join(x for x in (who, what) if x)
 
 
-def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=None) -> Path | None:
+def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=None,
+                  record=None) -> Path | None:
     """video = {id, title, path, url?, source?}. Returns the output folder."""
     # Unique per video AND per part: long titles get cut short by slugify, and
     # parts of one stream must never share a folder (or a cached transcript).
@@ -97,6 +98,9 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
             print(f"[chat] {len(spikes)} spikes: " + ", ".join(f"{x['t'] // 60}m{x['t'] % 60:02d}s x{x['x']}" for x in spikes))
     if src.get("layout"):
         cfg = {**cfg, "layout": src["layout"]}
+    if video.get("parts", 1) > 1 or video.get("part"):
+        # one hour of a long stream: ask for a few, keep only the best
+        cfg = {**cfg, "clips_per_video": cfg["stream_clips_per_hour"] + 2}
     picks = pick_clips(segments, video["title"], cfg, spikes)
     clips = snap_to_words(picks, all_words(segments), cfg)
     clips.sort(key=lambda c: -c["score"])
@@ -104,7 +108,9 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
     clips = [c for c in clips if c.get("score", 10) >= cfg["min_score"]]
     if weak:
         print(f"[select] dropped {len(weak)} weak moment(s) scoring under {cfg['min_score']}")
-    clips = [apply_campaign(c, src) for c in clips[: cfg["max_clips_per_video"]]]
+    is_part = video.get("parts", 1) > 1 or bool(video.get("part"))
+    cap = cfg["stream_clips_per_hour"] if is_part else cfg["max_clips_per_video"]
+    clips = [apply_campaign(c, src) for c in clips[:cap]]
     print(f"[select] {len(picks)} suggested, {len(clips)} kept")
 
     manifest = []
@@ -130,6 +136,10 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
         {"source": video.get("url") or str(video["path"]), "title": head_title,
          "batch": batch, "video_title": video["title"], "clips": manifest}, indent=2))
 
+    if record and manifest:
+        record([{"id": m["id"], "title": m["title"], "score": m["score"],
+                 "streamer": src.get("name") or "", "at": int(time.time())} for m in manifest])
+
     if deliver.telegram_enabled() and manifest:
         head = f"📦 {head_title} · {len(manifest)} clips\n{video['title']}"
         if src.get("reminder"):
@@ -139,6 +149,56 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
             deliver.send_clip(out_dir / m["file"],
                               f"📦 {m['id']} · ⭐ {m['score']}/10\n{m['title']}\n\n{post_text(m)}")
     return out_dir
+
+
+def _local_now(cfg: dict) -> dt.datetime:
+    return dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=cfg["utc_offset_hours"])
+
+
+def _pick_lines(clips: list) -> str:
+    return "\n".join(f"• {c['id']}  ⭐{c['score']}  {c['streamer']}: {c['title']}" for c in clips)
+
+
+def daily_top_picks(state: dict, cfg: dict) -> None:
+    """Once a day (after digest_hour, your local time) send the best clips of the
+    last 36 h that haven't been suggested yet, so you know exactly what to post."""
+    now = _local_now(cfg)
+    today = f"{now:%Y-%m-%d}"
+    if now.hour < cfg["digest_hour"] or state.get("last_digest") == today:
+        return
+    cutoff = time.time() - 36 * 3600
+    fresh = [c for c in state.get("clips", []) if c["at"] >= cutoff and not c.get("suggested")]
+    if not fresh:
+        return
+    top = sorted(fresh, key=lambda c: (-c["score"], -c["at"]))[: cfg["digest_count"]]
+    for c in top:
+        c["suggested"] = today
+    state["last_digest"] = today
+    if deliver.telegram_enabled():
+        deliver.send_message(f"📌 Today's top {len(top)} to post (best first):\n\n{_pick_lines(top)}\n\n"
+                             "Post each to TikTok + YouTube + Instagram, then submit the links.")
+    print(f"[digest] sent today's top {len(top)}")
+
+
+def finish_single_stream(state: dict, src: dict) -> None:
+    """A one-off stream (single_stream: true, e.g. a 24h marathon) has ended and every
+    part is clipped: stop watching that channel and send the best of it."""
+    if not src.get("single_stream") or src["url"] in state.get("finished_sources", {}):
+        return
+    state.setdefault("finished_sources", {})[src["url"]] = f"{dt.date.today()}"
+    print(f"[done] {src.get('name') or src['url']}: stream fully clipped, no longer watching")
+    final_summary(state, src)
+
+
+def final_summary(state: dict, src: dict) -> None:
+    """When a one-off stream (e.g. a 24h marathon) is fully clipped, send the best of it."""
+    name = src.get("name") or ""
+    mine = [c for c in state.get("clips", []) if c.get("streamer") == name]
+    if not mine or not deliver.telegram_enabled():
+        return
+    best = sorted(mine, key=lambda c: -c["score"])[:10]
+    deliver.send_message(f"🏁 {name} stream finished and fully clipped: {len(mine)} clips.\n"
+                         f"Best 10:\n\n{_pick_lines(best)}\n\nNo longer watching {name}.")
 
 
 def main() -> None:
@@ -201,6 +261,10 @@ def main() -> None:
             fetch.save_state(state)
             return state["batch_counter"]
 
+        def record(entries: list) -> None:
+            state.setdefault("clips", []).extend(entries)
+            fetch.save_state(state)
+
         for item in todo:
             url = item["url"]
             key = item["id"] or url
@@ -223,7 +287,7 @@ def main() -> None:
                     video = fetch.download(url, work, cfg, part, src)
                     if item.get("source", {}).get("name") or item.get("source", {}).get("notes"):
                         video["source"] = item["source"]
-                    out = process_video(video, cfg, next_batch=next_batch)
+                    out = process_video(video, cfg, next_batch=next_batch, record=record)
                     shutil.rmtree(work, ignore_errors=True)
                     done.append(out)
                     state["failures"].pop(key, None)
@@ -237,11 +301,17 @@ def main() -> None:
                     state["processed"][item["id"]] = {
                         "title": video["title"], "date": f"{dt.date.today()}",
                         "output": str(out.relative_to(ROOT)) if out else None}
+                    if video.get("parts", 1) > 1 or video.get("part"):
+                        finish_single_stream(state, src)
                     break
             except fetch.NotReady as e:
                 print(f"[later] {url}: {e}")
             except fetch.Skip as e:
                 print(f"[skip] {url}: {e}")
+                if "all parts already clipped" in str(e):  # stream ended right after a part
+                    state["partial"].pop(item["id"], None)
+                    state["partial_urls"].pop(item["id"], None)
+                    finish_single_stream(state, item.get("source") or fetch.find_source(cfg, url))
                 if item["id"]:
                     state["processed"][item["id"]] = {"date": f"{dt.date.today()}", "skipped": str(e)}
             except Exception as e:
@@ -256,6 +326,12 @@ def main() -> None:
             finally:
                 fetch.save_state(state)  # save after each video so progress isn't lost
                 shutil.rmtree(work, ignore_errors=True)
+
+        try:
+            daily_top_picks(state, cfg)
+        except Exception as e:  # never fail a run over the digest
+            print(f"[digest] skipped: {e}")
+        fetch.save_state(state)
 
     done = [d for d in done if d]
     # GitHub Actions reads this to publish releases

@@ -21,6 +21,9 @@ DEFAULTS = {
     "stream_clips_per_hour": 3,
     "max_clips_per_video": 15,
     "min_score": 6,
+    "digest_hour": 12,
+    "digest_count": 6,
+    "utc_offset_hours": 3,
     "max_stream_hours": 8,
     "stream_part_hours": 4,
     "processing_ratio": 0.5,
@@ -73,4 +76,5 @@ def normalize_source(s) -> dict:
     for k in ("name", "notes", "overlay", "reminder", "since", "layout"):
         s[k] = str(s.get(k) or "").strip()
     s.setdefault("auto", True)  # False = only clip when a URL is run by hand
+    s["single_stream"] = bool(s.get("single_stream", False))  # stop after one long stream
     return s

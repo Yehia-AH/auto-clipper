@@ -94,7 +94,9 @@ def list_new_videos(cfg: dict, state: dict) -> list[dict]:
     opts = {**_base_opts(), "extract_flat": "in_playlist",
             "playlistend": cfg["lookback_videos"]}
     with yt_dlp.YoutubeDL(opts) as ydl:
-        for src, settings in expand_sources([s for s in cfg["sources"] if s.get("auto", True)]):
+        finished = state.get("finished_sources", {})
+        watched = [s for s in cfg["sources"] if s.get("auto", True) and s["url"] not in finished]
+        for src, settings in expand_sources(watched):
             try:
                 info = ydl.extract_info(src, download=False)
             except Exception as e:  # one bad source shouldn't stop the run

@@ -19,6 +19,7 @@
 #   reminder: shown in Telegram with each batch of clips
 #   since:    only clip videos recorded on/after this date (YYYY-MM-DD)
 #   layout:   force a layout for this streamer (split / crop / blur / auto)
+#   single_stream: true = a one-off stream (marathon): stop watching once it's fully clipped
 #   auto:     false = don't watch this channel; only clip links you run by hand
 sources:
   # Reach: $5,000 Clix GTA VI Marathon Pool (split by views, paid when the pool ends)
@@ -27,6 +28,7 @@ sources:
     name: Clix
     since: 2026-11-18      # only footage from the GTA marathon (started Nov 18)
     layout: split          # webcam on top, gameplay below
+    single_stream: true    # 24h marathon: stop watching Clix once it's fully clipped
     hashtags: ["#Clix", "#GTA6"]
     notes: >
       Only clip his GTA 6 marathon. Clix must be the main subject of every clip:
@@ -76,9 +78,14 @@ effort: medium
 # Streams are clipped once the VOD is up. Live Twitch marathons are clipped while they run,
 # one finished part at a time.
 long_video_minutes: 90
-stream_clips_per_hour: 3     # e.g. a 4h stream -> up to 12 clips
+stream_clips_per_hour: 3     # at most this many clips per hour of stream
 max_clips_per_video: 15
-min_score: 6                 # drop moments Claude rates below this (1-10)
+min_score: 8                 # only send moments Claude rates 8/10 or higher
+
+# Daily "top picks" message in Telegram (your local time)
+digest_hour: 12
+digest_count: 6
+utc_offset_hours: 3
 max_stream_hours: 8          # streams longer than this are clipped in parts
 stream_part_hours: 1         # part length; live Twitch marathons are clipped as each hour finishes
 stream_whisper_model: base   # faster model so long streams fit in one run

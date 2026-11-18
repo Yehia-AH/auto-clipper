@@ -28,6 +28,12 @@ for vid in set(remote.get("partial", {})) | set(local.get("partial", {})):
         continue  # finished by one of the runs
     merged["partial"][vid] = max(remote.get("partial", {}).get(vid, 0),
                                  local.get("partial", {}).get(vid, 0))
+clips = {c["id"]: c for c in remote.get("clips", [])}
+for c in local.get("clips", []):
+    clips[c["id"]] = {**clips.get(c["id"], {}), **c}
+merged["clips"] = sorted(clips.values(), key=lambda c: c.get("at", 0))[-2000:]
+merged["finished_sources"] = {**remote.get("finished_sources", {}), **local.get("finished_sources", {})}
+merged["last_digest"] = max(remote.get("last_digest", ""), local.get("last_digest", ""))
 merged["batch_counter"] = max(remote.get("batch_counter", 0), local.get("batch_counter", 0))
 merged["partial_urls"] = {vid: u for vid, u in
                           {**remote.get("partial_urls", {}), **local.get("partial_urls", {})}.items()
