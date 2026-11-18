@@ -1,4 +1,8 @@
 name: Auto Clip
+run-name: >-
+  ${{ inputs.urls != '' && format('✂️ Clip: {0}', inputs.urls)
+  || (github.event_name == 'schedule' && '⏰ Hourly check (watched streamers)'
+  || '🔎 Check watched streamers now') }}
 
 on:
   schedule:
