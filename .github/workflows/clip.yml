@@ -114,12 +114,12 @@ jobs:
             ls "$dir"/*.mp4 >/dev/null 2>&1 || continue
             title=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['title'][:100])" "$dir/manifest.json")
             {
-              echo "Clips from: $title"
+              echo "$title"
               echo
               for t in "$dir"/*.txt; do echo "### $(basename "${t%.txt}")"; echo; cat "$t"; echo; done
             } > notes.md
             gh release create "clips-${GITHUB_RUN_ID}-${i}" "$dir"/*.mp4 "$dir"/*.txt \
-              --title "✂️ $title" --notes-file notes.md
+              --title "📦 $title" --notes-file notes.md
           done
 
       - name: Remember processed videos

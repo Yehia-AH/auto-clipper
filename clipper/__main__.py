@@ -45,7 +45,18 @@ def apply_campaign(clip: dict, src: dict) -> dict:
     return {**clip, "caption": caption, "hashtags": tags[:8]}
 
 
-def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | None:
+def batch_label(video: dict, src: dict) -> str:
+    """Short human name for a batch, e.g. "Clix · hour 3" or "SypherPK · FINDING THE…"."""
+    who = src.get("name") or video.get("uploader") or ""
+    base = re.sub(r"\s*\(part \d+ (?:live|of \d+)\)$", "", video["title"])
+    if video.get("parts", 1) > 1 or video.get("part"):
+        what = f"hour {video['part'] + 1}"
+    else:
+        what = base[:45] + ("…" if len(base) > 45 else "")
+    return " · ".join(x for x in (who, what) if x)
+
+
+def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=None) -> Path | None:
     """video = {id, title, path, url?, source?}. Returns the output folder."""
     # Unique per video AND per part: long titles get cut short by slugify, and
     # parts of one stream must never share a folder (or a cached transcript).
@@ -105,17 +116,28 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
         print(f"[render] {name} ({clip['end'] - clip['start']:.0f}s, {layout}, score {clip['score']})")
         manifest.append({k: v for k, v in clip.items() if k != "words"} | {"file": name, "layout": layout})
 
+    # Number every batch (and every clip in it) so they're easy to talk about:
+    # "Batch 4", clip "4.2".
+    batch = next_batch() if (next_batch and manifest) else None
+    label = batch_label(video, src)
+    head_title = f"Batch {batch} · {label}" if batch else label
+    for i, m in enumerate(manifest, 1):
+        m["id"] = f"{batch}.{i}" if batch else str(i)
+        (out_dir / m["file"]).with_suffix(".txt").write_text(
+            f"Clip {m['id']} · score {m['score']}/10\n{m['title']}\n\n{post_text(m)}\n")
+
     (out_dir / "manifest.json").write_text(json.dumps(
-        {"source": video.get("url") or str(video["path"]), "title": video["title"],
-         "clips": manifest}, indent=2))
+        {"source": video.get("url") or str(video["path"]), "title": head_title,
+         "batch": batch, "video_title": video["title"], "clips": manifest}, indent=2))
 
     if deliver.telegram_enabled() and manifest:
-        head = f"✂️ {len(manifest)} new clips from: {video['title']}"
+        head = f"📦 {head_title} · {len(manifest)} clips\n{video['title']}"
         if src.get("reminder"):
             head += f"\n\n📌 {src['reminder']}"
         deliver.send_message(head)
         for m in manifest:
-            deliver.send_clip(out_dir / m["file"], f"{m['title']}\n\n{post_text(m)}")
+            deliver.send_clip(out_dir / m["file"],
+                              f"📦 {m['id']} · ⭐ {m['score']}/10\n{m['title']}\n\n{post_text(m)}")
     return out_dir
 
 
@@ -173,6 +195,12 @@ def main() -> None:
         budget = float(os.environ.get("RUN_BUDGET_MINUTES") or 0) * 60
         started = time.time()
         part_secs = cfg["stream_part_hours"] * 3600
+
+        def next_batch() -> int:
+            state["batch_counter"] = state.get("batch_counter", 0) + 1
+            fetch.save_state(state)
+            return state["batch_counter"]
+
         for item in todo:
             url = item["url"]
             key = item["id"] or url
@@ -190,7 +218,7 @@ def main() -> None:
                     video = fetch.download(url, work, cfg, part, src)
                     if item.get("source", {}).get("name") or item.get("source", {}).get("notes"):
                         video["source"] = item["source"]
-                    out = process_video(video, cfg)
+                    out = process_video(video, cfg, next_batch=next_batch)
                     shutil.rmtree(work, ignore_errors=True)
                     done.append(out)
                     state["failures"].pop(key, None)
