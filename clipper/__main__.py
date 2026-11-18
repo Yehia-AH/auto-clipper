@@ -15,7 +15,7 @@ from pathlib import Path
 
 from . import deliver, fetch
 from .config import ROOT, load_config
-from .render import render_clip
+from .render import UnsafeClip, render_clip
 from .highlights import pick_clips, snap_to_words
 from .chat import add_chat, chat_counts
 from .gta_cues import classify_text
@@ -95,7 +95,13 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
     manifest = []
     for i, clip in enumerate(clips, 1):
         name = f"clip_{i:02d}_{slugify(clip['title'], 40)}.mp4"
-        layout = render_clip(video["path"], clip, out_dir / name, cfg, overlay=src.get("overlay"))
+        try:
+            layout = render_clip(video["path"], clip, out_dir / name, cfg, overlay=src.get("overlay"))
+        except UnsafeClip as e:
+            print(f"[safety] dropped '{clip['title']}': {e}")
+            continue
+        if clip.get("blurred"):
+            print(f"[safety] blurred nudity in '{clip['title']}' at {clip['blurred']}")
         text = post_text(clip)
         (out_dir / name).with_suffix(".txt").write_text(f"{clip['title']}\n\n{text}\n")
         print(f"[render] {name} ({clip['end'] - clip['start']:.0f}s, {layout}, score {clip['score']})")

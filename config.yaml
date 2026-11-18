@@ -79,6 +79,11 @@ long_video_minutes: 90
 stream_clips_per_hour: 3     # e.g. a 4h stream -> up to 12 clips
 max_clips_per_video: 15
 min_score: 6                 # drop moments Claude rates below this (1-10)
+
+# Nudity filter (GTA strip club / shower scenes): blur the gameplay where it shows up;
+# drop the clip if more than nsfw_max_fraction of it is nudity.
+nsfw_filter: true
+nsfw_max_fraction: 0.4
 max_stream_hours: 8          # streams longer than this are clipped in parts
 stream_part_hours: 1         # part length; live Twitch marathons are clipped as each hour finishes
 stream_whisper_model: base   # faster model so long streams fit in one run

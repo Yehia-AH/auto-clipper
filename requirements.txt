@@ -5,3 +5,4 @@ opencv-python-headless>=4.9,<5
 numpy
 pyyaml
 requests
+nudenet>=3.4

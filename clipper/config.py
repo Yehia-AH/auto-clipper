@@ -21,6 +21,8 @@ DEFAULTS = {
     "stream_clips_per_hour": 3,
     "max_clips_per_video": 15,
     "min_score": 6,
+    "nsfw_filter": True,
+    "nsfw_max_fraction": 0.4,
     "max_stream_hours": 8,
     "stream_part_hours": 4,
     "processing_ratio": 0.5,

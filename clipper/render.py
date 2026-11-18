@@ -102,7 +102,7 @@ def webcam_box(samples, w: int, h: int):
     return (cx, cy, fw) if small else None
 
 
-def split_graph(box, w: int, h: int) -> str:
+def split_graph(box, w: int, h: int, blur: str = "") -> str:
     """Webcam on top (1080x640), gameplay underneath (1080x1280)."""
     cx, cy, fw = box
     cam_w = min(w, int(fw * 5))
@@ -123,7 +123,7 @@ def split_graph(box, w: int, h: int) -> str:
     game_x = int(best) // 2 * 2
     return (f"[0:v]split[a][b];"
             f"[a]crop={cam_w}:{cam_h}:{cam_x}:{cam_y},scale=1080:640,setsar=1[top];"
-            f"[b]crop={game_w}:{h}:{game_x}:0,scale=1080:1280,setsar=1[bot];"
+            f"[b]crop={game_w}:{h}:{game_x}:0,scale=1080:1280,setsar=1{blur}[bot];"
             f"[top][bot]vstack[base]")
 
 
@@ -209,6 +209,10 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
 
 # ---------------------------------------------------------------- render
 
+class UnsafeClip(Exception):
+    """The clip is mostly nudity; don't post it."""
+
+
 def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None = None) -> str:
     """Render one vertical clip. Returns the layout used."""
     w, h = probe(src)
@@ -235,8 +239,20 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
     elif layout == "crop":
         plan = [(0.0, (w - cw) // 2 // 2 * 2)]
 
+    # Nudity (GTA strip club / shower scenes): blur the gameplay where it shows up,
+    # or drop the clip when it's most of it.
+    blur = ""
+    if cfg.get("nsfw_filter", True):
+        from .safety import enable_expr, nsfw_intervals
+        intervals, frac = nsfw_intervals(src, start, end)
+        if frac > cfg.get("nsfw_max_fraction", 0.4):
+            raise UnsafeClip(f"nudity in {frac:.0%} of the clip")
+        if intervals:
+            blur = f",boxblur=luma_radius=60:luma_power=4:enable='{enable_expr(intervals)}'"
+            clip["blurred"] = [[round(a, 1), round(b, 1)] for a, b in intervals]
+
     if layout == "split":
-        graph = split_graph(box, w, h)
+        graph = split_graph(box, w, h, blur)
     elif layout == "crop":
         x = _crop_x_expr(plan)
         graph = f"[0:v]crop={cw}:{h}:{x}:0,scale={OUT_W}:{OUT_H},setsar=1[base]"
@@ -245,6 +261,9 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
                  f"[a]scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,"
                  f"crop={OUT_W}:{OUT_H},boxblur=25:4,eq=brightness=-0.08[bg];"
                  f"[b]scale={OUT_W}:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1[base]")
+
+    if blur and layout != "split":  # whole picture is gameplay
+        graph = graph[: -len("[base]")] + f"[pre];[pre]null{blur}[base]"
 
     cap = cfg["captions"]
     workdir = out.parent
