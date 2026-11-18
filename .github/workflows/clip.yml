@@ -38,7 +38,7 @@ permissions:
 # Hourly checks share one lane, so the same stream is never clipped twice at once.
 # Runs where you paste video URLs get their own lane and run in parallel.
 concurrency:
-  group: ${{ (inputs.urls != '' || github.event_name == 'push') && format('clipper-manual-{0}', github.run_id) || 'clipper-auto' }}
+  group: ${{ (inputs.urls != '' || (github.event_name == 'push' && !contains(github.event.head_commit.message, '[watched]'))) && format('clipper-manual-{0}', github.run_id) || 'clipper-auto' }}
   cancel-in-progress: false
 
 jobs:
@@ -88,7 +88,9 @@ jobs:
           EXTRA=""
           URLS="${URLS:-$REQ_URLS}"
           CAMPAIGN="${CAMPAIGN:-$REQ_CAMPAIGN}"
-          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ -z "$URLS" ]; then
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$REQ_CAMPAIGN" = "watched" ]; then
+            URLS=""; CAMPAIGN=""   # "watched" = check the auto-watched streamers now
+          elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ -z "$URLS" ]; then
             echo "Request file has no link in it, nothing to do."; echo "[]" > .last_run.json; exit 0
           fi
           if [ -n "$CLIPS" ]; then EXTRA="--clips $CLIPS"; fi
