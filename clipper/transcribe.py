@@ -46,5 +46,23 @@ def transcribe(video: Path, model_name: str, language: str | None, cache: Path) 
     return out
 
 
+def add_energy(video: Path, segments: list[dict]) -> None:
+    """Score each segment 0-10 by how loud it gets compared with the rest of the
+    video (yelling, laughing, hype). Stored as segment["energy"]."""
+    audio = load_audio(video)
+    win = SAMPLE_RATE // 2  # 0.5 s windows
+    n = len(audio) // win
+    if n < 4:
+        return
+    rms = np.sqrt(np.mean(audio[: n * win].reshape(n, win) ** 2, axis=1) + 1e-10)
+    db = 20 * np.log10(rms)
+    ranks = np.argsort(np.argsort(db)) / max(n - 1, 1)  # 0..1 percentile per window
+    for s in segments:
+        a, b = int(s["start"] * 2), max(int(s["end"] * 2), int(s["start"] * 2) + 1)
+        seg = ranks[a:b]
+        if len(seg):
+            s["energy"] = int(round(float(np.max(seg)) * 10))
+
+
 def all_words(segments: list[dict]) -> list[dict]:
     return [w for s in segments for w in s["words"]]

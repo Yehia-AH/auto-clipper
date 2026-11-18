@@ -17,7 +17,7 @@ from . import deliver, fetch
 from .config import ROOT, load_config
 from .render import render_clip
 from .highlights import pick_clips, snap_to_words
-from .transcribe import all_words, transcribe
+from .transcribe import add_energy, all_words, transcribe
 
 
 def slugify(s: str, n: int = 50) -> str:
@@ -63,6 +63,12 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
         print("[skip] no speech found")
         return None
 
+    try:
+        add_energy(video["path"], segments)
+    except Exception as e:  # energy is a bonus signal; never fail a video over it
+        print(f"[energy] skipped: {e}")
+    if src.get("layout"):
+        cfg = {**cfg, "layout": src["layout"]}
     picks = pick_clips(segments, video["title"], cfg)
     clips = snap_to_words(picks, all_words(segments), cfg)
     clips.sort(key=lambda c: -c["score"])

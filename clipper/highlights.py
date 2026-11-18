@@ -40,13 +40,25 @@ on filler like "so", "yeah", "um", "and".
 mid-thought.
 - Has no dead air or long tangents.
 
+Each transcript line may show "(energy N)": how loud the audio gets on that line \
+compared with the rest of the video, 0 (quietest) to 10 (loudest). For gaming and \
+stream content, energy spikes (yelling, laughing, hype, rage) are the strongest sign \
+of a clip-worthy moment: a great stream clip almost always has an energy spike in the \
+first few seconds or at the payoff. Do not pick calm, low-energy talk unless the line \
+itself is genuinely funny or shocking without any visuals. You only have the \
+transcript, so prefer moments where the speech itself makes clear something exciting \
+just happened.
+
 Use the timestamps in the transcript exactly: a clip's start must be the start time \
 of the line it opens on, and its end must be the end time of the line it closes on. \
 Clips must not overlap. Sort clips by score, best first."""
 
 
 def _format_transcript(segments: list[dict]) -> str:
-    return "\n".join(f"[{s['start']:.2f}-{s['end']:.2f}] {s['text']}" for s in segments)
+    return "\n".join(
+        f"[{s['start']:.2f}-{s['end']:.2f}]"
+        + (f" (energy {s['energy']})" if "energy" in s else "")
+        + f" {s['text']}" for s in segments)
 
 
 def _hms(t: float) -> str:

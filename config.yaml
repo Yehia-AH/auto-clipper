@@ -18,6 +18,7 @@
 #   overlay:  small text shown on the video the whole time (e.g. a required @handle)
 #   reminder: shown in Telegram with each batch of clips
 #   since:    only clip videos recorded on/after this date (YYYY-MM-DD)
+#   layout:   force a layout for this streamer (split / crop / blur / auto)
 #   auto:     false = don't watch this channel; only clip links you run by hand
 sources:
   # Reach: $5,000 Clix GTA VI Marathon Pool (split by views, paid when the pool ends)
@@ -25,6 +26,7 @@ sources:
   - url: https://www.twitch.tv/clix
     name: Clix
     since: 2026-11-18      # only footage from the GTA marathon (started Nov 18)
+    layout: split          # webcam on top, gameplay below
     hashtags: ["#Clix", "#GTA6"]
     notes: >
       Only clip his GTA 6 marathon. Clix must be the main subject of every clip:
@@ -40,6 +42,7 @@ sources:
   # this channel is not watched automatically: run those VOD links by hand.
   - url: https://www.twitch.tv/sypherpk
     name: SypherPK
+    layout: split
     hashtags: ["#SypherPK"]
     auto: false
     reminder: >

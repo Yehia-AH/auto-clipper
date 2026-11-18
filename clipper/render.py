@@ -96,9 +96,10 @@ def webcam_box(samples, w: int, h: int):
     stream), return its median (cx, cy, fw). Otherwise None."""
     boxes = [b for _, b in samples if b]
     cx, cy, fw = (float(np.median([b[i] for b in boxes])) for i in range(3))
+    # A face this small is almost always a webcam overlay on top of gameplay,
+    # wherever the streamer put it. (Podcast / IRL faces are much bigger.)
     small = fw < 0.07 * w
-    corner = (cx < 0.25 * w or cx > 0.75 * w) and (cy < 0.33 * h or cy > 0.62 * h)
-    return (cx, cy, fw) if small and corner else None
+    return (cx, cy, fw) if small else None
 
 
 def split_graph(box, w: int, h: int) -> str:
@@ -112,7 +113,14 @@ def split_graph(box, w: int, h: int) -> str:
     cam_x = int(min(max(cx - cam_w / 2, 0), w - cam_w)) // 2 * 2
     cam_y = int(min(max(cy - cam_h * 0.45, 0), h - cam_h)) // 2 * 2
     game_w = min(w, int(h * 1080 / 1280)) // 2 * 2
-    game_x = (w - game_w) // 2 // 2 * 2
+    # keep the webcam out of the gameplay panel when there's room to
+    cam_l, cam_r = cx - fw * 3.2, cx + fw * 3.2
+    candidates = [(w - game_w) / 2, cam_r, cam_l - game_w]
+    def overlap(x):
+        return max(0.0, min(x + game_w, cam_r) - max(x, cam_l))
+    valid = [x for x in candidates if 0 <= x <= w - game_w] or [(w - game_w) / 2]
+    best = min(valid, key=lambda x: (overlap(x), abs(x - (w - game_w) / 2)))
+    game_x = int(best) // 2 * 2
     return (f"[0:v]split[a][b];"
             f"[a]crop={cam_w}:{cam_h}:{cam_x}:{cam_y},scale=1080:640,setsar=1[top];"
             f"[b]crop={game_w}:{h}:{game_x}:0,scale=1080:1280,setsar=1[bot];"

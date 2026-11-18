@@ -70,7 +70,7 @@ def normalize_source(s) -> dict:
     s = dict(s)
     s["url"] = str(s["url"]).strip()
     s["hashtags"] = ["#" + str(h).lstrip("#").replace(" ", "") for h in (s.get("hashtags") or [])]
-    for k in ("name", "notes", "overlay", "reminder", "since"):
+    for k in ("name", "notes", "overlay", "reminder", "since", "layout"):
         s[k] = str(s.get(k) or "").strip()
     s.setdefault("auto", True)  # False = only clip when a URL is run by hand
     return s
