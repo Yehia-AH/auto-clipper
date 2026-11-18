@@ -1,0 +1,28 @@
+name: Send report to Telegram
+run-name: ${{ github.event.head_commit.message }}
+
+# The BOD/MOD/EOD checks write their summary to reports/latest.md and push it;
+# this forwards it to your Telegram bot.
+on:
+  push:
+    branches: [main]
+    paths: ["reports/latest.md"]
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ] || { echo "Telegram not set up"; exit 0; }
+          text=$(head -c 4000 reports/latest.md)
+          curl -sS --fail-with-body -X POST \
+            "https://api.telegram.org/bot$(echo "$TELEGRAM_BOT_TOKEN" | tr -d '[:space:]')/sendMessage" \
+            --data-urlencode "chat_id=$(echo "$TELEGRAM_CHAT_ID" | tr -d '[:space:]')" \
+            --data-urlencode "text=$text" \
+            -d disable_web_page_preview=true > /dev/null && echo "sent"
