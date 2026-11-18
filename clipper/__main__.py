@@ -118,11 +118,17 @@ def main() -> None:
         state = fetch.load_state()
         state.setdefault("failures", {})
         state.setdefault("partial", {})
+        state.setdefault("partial_urls", {})
         if args.cmd == "run":
-            if not cfg["sources"]:
+            if not cfg["sources"] and not state["partial"]:
                 print("No sources in config.yaml yet. Add a channel or playlist URL.")
                 return
             todo = fetch.list_new_videos(cfg, state)[: cfg["max_videos_per_run"]]
+            # also finish long videos that a previous run (e.g. one started by hand)
+            # didn't get through
+            for vid, vurl in state["partial_urls"].items():
+                if vid in state["partial"] and not any(t["id"] == vid for t in todo):
+                    todo.append({"id": vid, "url": vurl, "duration": 0})
             print(f"{len(todo)} new video(s) to clip")
         else:
             todo = [{"id": None, "url": u, "duration": 0} for u in args.urls]
@@ -154,9 +160,11 @@ def main() -> None:
                     state["failures"].pop(key, None)
                     if video["part"] + 1 < video["parts"]:
                         state["partial"][video["id"]] = video["part"] + 1
+                        state["partial_urls"][video["id"]] = url
                         fetch.save_state(state)
                         continue  # next part (or NotReady if it's still being streamed)
                     state["partial"].pop(video["id"], None)
+                    state["partial_urls"].pop(video["id"], None)
                     state["processed"][video["id"]] = {
                         "title": video["title"], "date": f"{dt.date.today()}",
                         "output": str(out.relative_to(ROOT)) if out else None}

@@ -28,6 +28,9 @@ for vid in set(remote.get("partial", {})) | set(local.get("partial", {})):
         continue  # finished by one of the runs
     merged["partial"][vid] = max(remote.get("partial", {}).get(vid, 0),
                                  local.get("partial", {}).get(vid, 0))
+merged["partial_urls"] = {vid: u for vid, u in
+                          {**remote.get("partial_urls", {}), **local.get("partial_urls", {})}.items()
+                          if vid in merged["partial"]}
 for vid in list(merged["failures"]):
     if vid in merged["processed"]:
         merged["failures"].pop(vid)
