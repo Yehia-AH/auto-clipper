@@ -47,7 +47,11 @@ def apply_campaign(clip: dict, src: dict) -> dict:
 
 def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | None:
     """video = {id, title, path, url?, source?}. Returns the output folder."""
-    out_dir = ROOT / cfg["output_dir"] / f"{dt.date.today():%Y-%m-%d}_{slugify(video['title'])}"
+    # Unique per video AND per part: long titles get cut short by slugify, and
+    # parts of one stream must never share a folder (or a cached transcript).
+    part = f"_p{video['part'] + 1}" if video.get("parts", 1) > 1 or video.get("part") else ""
+    out_dir = (ROOT / cfg["output_dir"] /
+               f"{dt.date.today():%Y-%m-%d}_{slugify(video['title'], 40)}_{slugify(str(video['id']), 20)}{part}")
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"\n=== {video['title']} ===")
     src = video.get("source") or {}
