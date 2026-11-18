@@ -249,6 +249,8 @@ def main() -> None:
                 n = state["failures"][key] = state["failures"].get(key, 0) + 1
                 if n >= 3 and item["id"]:  # stop retrying a video that keeps failing
                     state["processed"][item["id"]] = {"date": f"{dt.date.today()}", "error": str(e)[:300]}
+                    state["partial"].pop(item["id"], None)  # stop retrying it in later runs
+                    state["partial_urls"].pop(item["id"], None)
                 if deliver.telegram_enabled():
                     deliver.send_message(f"⚠️ Clipper failed on {url} (try {n}/3): {str(e)[:300]}")
             finally:
