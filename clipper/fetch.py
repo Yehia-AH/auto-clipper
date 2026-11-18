@@ -50,28 +50,50 @@ _YT_CHANNEL = re.compile(r"^https?://(www\.|m\.)?youtube\.com/(@[^/?#]+|channel/
 _TWITCH_CHANNEL = re.compile(r"^https?://(www\.)?twitch\.tv/([A-Za-z0-9_]+)/?$")
 
 
-def expand_sources(sources: list[str]) -> list[str]:
+def expand_sources(sources: list) -> list[tuple[str, dict]]:
     """A bare YouTube channel link covers both uploads and past live streams.
-    A bare Twitch channel link means its past broadcasts."""
+    A bare Twitch channel link means its past broadcasts.
+    Returns [(url_to_scan, source_settings)]."""
     out = []
-    for s in sources:
-        s = s.strip()
+    for src in sources:
+        if isinstance(src, str):
+            src = {"url": src}
+        s = src["url"].strip()
         if _YT_CHANNEL.match(s):
-            out += [s.rstrip("/") + "/videos", s.rstrip("/") + "/streams"]
+            out += [(s.rstrip("/") + "/videos", src), (s.rstrip("/") + "/streams", src)]
         elif (m := _TWITCH_CHANNEL.match(s)):
-            out.append(f"https://www.twitch.tv/{m.group(2)}/videos?filter=archives&sort=time")
+            out.append((f"https://www.twitch.tv/{m.group(2)}/videos?filter=archives&sort=time", src))
         else:
-            out.append(s)
+            out.append((s, src))
     return out
 
 
+def _channel_slug(url: str) -> str | None:
+    m = re.search(r"(?:youtube\.com/@|twitch\.tv/|kick\.com/)([A-Za-z0-9_.\-]+)", url or "")
+    return m.group(1).lower() if m and m.group(1).lower() not in ("videos", "watch") else None
+
+
+def find_source(cfg: dict, url: str, info: dict | None = None) -> dict:
+    """Match a video to its source's campaign settings (by channel name)."""
+    names = {n.lower() for n in [
+        _channel_slug(url) or "",
+        *((info or {}).get(k) or "" for k in ("uploader_id", "channel", "uploader", "channel_id")),
+    ] if n}
+    names |= {n.lstrip("@") for n in names}
+    for src in cfg["sources"]:
+        slug = _channel_slug(src["url"])
+        if slug and slug in names:
+            return src
+    return {"url": url, "name": "", "hashtags": [], "notes": "", "overlay": "", "reminder": ""}
+
+
 def list_new_videos(cfg: dict, state: dict) -> list[dict]:
-    """Return [{id, url, title}] for unprocessed uploads across all sources."""
+    """Return [{id, url, title, duration, source}] for unclipped videos across all sources."""
     found = []
     opts = {**_base_opts(), "extract_flat": "in_playlist",
             "playlistend": cfg["lookback_videos"]}
     with yt_dlp.YoutubeDL(opts) as ydl:
-        for src in expand_sources(cfg["sources"]):
+        for src, settings in expand_sources([s for s in cfg["sources"] if s.get("auto", True)]):
             try:
                 info = ydl.extract_info(src, download=False)
             except Exception as e:  # one bad source shouldn't stop the run
@@ -93,7 +115,7 @@ def list_new_videos(cfg: dict, state: dict) -> list[dict]:
                 if not str(url).startswith("http"):
                     url = f"https://www.youtube.com/watch?v={vid}"
                 found.append({"id": vid, "url": url, "title": e.get("title") or vid,
-                              "duration": dur or 0})
+                              "duration": dur or 0, "source": settings})
     return found
 
 
@@ -112,14 +134,24 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0) -> dict:
         raise NotReady("stream is still live or the VOD is still processing")
     dur = info.get("duration") or 0
     ts = info.get("timestamp") or info.get("release_timestamp")
-    # Twitch lists the VOD of a stream that's still going; its end is ~now.
-    if ts and dur and time.time() - (ts + dur) < 20 * 60 and "twitch.tv" in url:
-        raise NotReady("Twitch VOD looks like it is still recording")
-    part_len = cfg["max_stream_hours"] * 3600
-    parts = max(1, math.ceil((dur - 60) / part_len)) if dur else 1
+    # Twitch lists the VOD of a stream that's still going (its end is ~now). For
+    # marathons we clip the parts that are already finished instead of waiting days.
+    recording = bool(ts and dur and time.time() - (ts + dur) < 20 * 60 and "twitch.tv" in url)
+    part_len = cfg["stream_part_hours"] * 3600
+    split = recording or part > 0 or dur > cfg["max_stream_hours"] * 3600
+    if recording:
+        ready = int(dur // part_len)  # fully recorded parts so far
+        if part >= ready:
+            raise NotReady(f"stream is live; the next {cfg['stream_part_hours']}h part isn't "
+                           f"finished yet ({dur / 3600:.1f}h recorded)")
+        parts = ready + 1  # total unknown while live, so never 'done' yet
+    elif split:
+        parts = max(1, math.ceil((dur - 60) / part_len))
+    else:
+        parts = 1
     if part >= parts:
         raise Skip("all parts already clipped")
-    start, end = part * part_len, min(dur, (part + 1) * part_len) if dur else None
+    start, end = (part * part_len, min(dur, (part + 1) * part_len)) if split else (0, dur)
 
     height = 720 if dur > cfg["long_video_minutes"] * 60 else 1080
     workdir.mkdir(parents=True, exist_ok=True)
@@ -132,15 +164,18 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0) -> dict:
         "noplaylist": True,
         "concurrent_fragment_downloads": 8,  # stream VODs come in many small pieces
     }
-    if parts > 1:
+    if split:
         opts["download_ranges"] = yt_dlp.utils.download_range_func(None, [(start, end)])
     with yt_dlp.YoutubeDL(opts) as ydl:
         info = ydl.extract_info(url, download=True)
         path = Path(ydl.prepare_filename(info)).with_suffix(".mp4")
     title = info.get("title") or info["id"]
-    if parts > 1:
-        title = f"{title} (part {part + 1} of {parts})"
-        print(f"[fetch] marathon stream ({dur / 3600:.1f}h): clipping part {part + 1}/{parts}")
+    if split:
+        total = "live" if recording else f"of {parts}"
+        title = f"{title} (part {part + 1} {total})"
+        print(f"[fetch] long stream ({dur / 3600:.1f}h{', still live' if recording else ''}): "
+              f"clipping {start / 3600:.1f}h-{end / 3600:.1f}h")
     return {"id": info["id"], "title": title, "path": path,
-            "duration": (end - start) if parts > 1 else (info.get("duration") or dur),
-            "url": info.get("webpage_url") or url, "part": part, "parts": parts}
+            "duration": (end - start) if split else (info.get("duration") or dur),
+            "url": info.get("webpage_url") or url, "part": part, "parts": parts,
+            "source": find_source(cfg, url, info)}

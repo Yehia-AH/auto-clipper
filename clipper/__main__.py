@@ -29,11 +29,30 @@ def post_text(clip: dict) -> str:
     return f"{clip['caption']}\n\n{tags}".strip()
 
 
+def apply_campaign(clip: dict, src: dict) -> dict:
+    """Make every clip pass the campaign's caption rules (name + required hashtags)."""
+    name, required = src.get("name"), src.get("hashtags") or []
+    caption = clip["caption"].strip()
+    if name and name.lower() not in caption.lower():
+        caption = f"{name}: {caption}"
+    tags = list(required)
+    for t in clip["hashtags"]:
+        t = "#" + t.lstrip("#").replace(" ", "")
+        if t.lower() not in (x.lower() for x in tags):
+            tags.append(t)
+    return {**clip, "caption": caption, "hashtags": tags[:8]}
+
+
 def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | None:
-    """video = {id, title, path, url?}. Returns the output folder."""
+    """video = {id, title, path, url?, source?}. Returns the output folder."""
     out_dir = ROOT / cfg["output_dir"] / f"{dt.date.today():%Y-%m-%d}_{slugify(video['title'])}"
     out_dir.mkdir(parents=True, exist_ok=True)
     print(f"\n=== {video['title']} ===")
+    src = video.get("source") or {}
+    if src.get("name") or src.get("notes"):
+        print(f"[campaign] {src.get('name') or src['url']}")
+        cfg = {**cfg, "niche_notes": f"{cfg['niche_notes']}\n\nCampaign rules for this video "
+               f"(streamer: {src.get('name') or 'see title'}): {src.get('notes')}".strip()}
 
     is_stream = (video.get("duration") or 0) > cfg["long_video_minutes"] * 60
     model = cfg["stream_whisper_model"] if is_stream else cfg["whisper_model"]
@@ -47,13 +66,13 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
     picks = pick_clips(segments, video["title"], cfg)
     clips = snap_to_words(picks, all_words(segments), cfg)
     clips.sort(key=lambda c: -c["score"])
-    clips = clips[: cfg["max_clips_per_video"]]
+    clips = [apply_campaign(c, src) for c in clips[: cfg["max_clips_per_video"]]]
     print(f"[select] {len(picks)} suggested, {len(clips)} kept")
 
     manifest = []
     for i, clip in enumerate(clips, 1):
         name = f"clip_{i:02d}_{slugify(clip['title'], 40)}.mp4"
-        layout = render_clip(video["path"], clip, out_dir / name, cfg)
+        layout = render_clip(video["path"], clip, out_dir / name, cfg, overlay=src.get("overlay"))
         text = post_text(clip)
         (out_dir / name).with_suffix(".txt").write_text(f"{clip['title']}\n\n{text}\n")
         print(f"[render] {name} ({clip['end'] - clip['start']:.0f}s, {layout}, score {clip['score']})")
@@ -64,7 +83,10 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
          "clips": manifest}, indent=2))
 
     if deliver.telegram_enabled() and manifest:
-        deliver.send_message(f"✂️ {len(manifest)} new clips from: {video['title']}")
+        head = f"✂️ {len(manifest)} new clips from: {video['title']}"
+        if src.get("reminder"):
+            head += f"\n\n📌 {src['reminder']}"
+        deliver.send_message(head)
         for m in manifest:
             deliver.send_clip(out_dir / m["file"], f"{m['title']}\n\n{post_text(m)}")
     return out_dir
@@ -109,27 +131,36 @@ def main() -> None:
         # us leave a video for the next run instead of getting killed halfway through.
         budget = float(os.environ.get("RUN_BUDGET_MINUTES") or 0) * 60
         started = time.time()
+        part_secs = cfg["stream_part_hours"] * 3600
         for item in todo:
             url = item["url"]
-            est = min(item["duration"], cfg["max_stream_hours"] * 3600) * cfg["processing_ratio"] + 15 * 60
-            if budget and done and time.time() - started + est > budget:
-                print(f"[later] not enough time left for {url}, next run will take it")
-                continue
             key = item["id"] or url
-            part = state["partial"].get(item["id"], 0) if item["id"] else 0
             try:
-                video = fetch.download(url, work, cfg, part)
-                out = process_video(video, cfg)
-                if video["part"] + 1 < video["parts"]:
-                    # marathon stream: next run picks up the next part
-                    state["partial"][video["id"]] = video["part"] + 1
-                else:
+                if not item["id"]:  # a URL run by hand: look up its id to resume parts
+                    item["id"] = fetch.probe_url(url)["id"]
+                # Long streams come in parts; keep going while there's time in this run.
+                while True:
+                    est = min(item["duration"] or part_secs, part_secs) * cfg["processing_ratio"] + 15 * 60
+                    if budget and done and time.time() - started + est > budget:
+                        print(f"[later] not enough time left for {url}, next run will take it")
+                        break
+                    part = state["partial"].get(item["id"], 0)
+                    video = fetch.download(url, work, cfg, part)
+                    if item.get("source", {}).get("name") or item.get("source", {}).get("notes"):
+                        video["source"] = item["source"]
+                    out = process_video(video, cfg)
+                    shutil.rmtree(work, ignore_errors=True)
+                    done.append(out)
+                    state["failures"].pop(key, None)
+                    if video["part"] + 1 < video["parts"]:
+                        state["partial"][video["id"]] = video["part"] + 1
+                        fetch.save_state(state)
+                        continue  # next part (or NotReady if it's still being streamed)
                     state["partial"].pop(video["id"], None)
                     state["processed"][video["id"]] = {
                         "title": video["title"], "date": f"{dt.date.today()}",
                         "output": str(out.relative_to(ROOT)) if out else None}
-                state["failures"].pop(key, None)
-                done.append(out)
+                    break
             except fetch.NotReady as e:
                 print(f"[later] {url}: {e}")
             except fetch.Skip as e:

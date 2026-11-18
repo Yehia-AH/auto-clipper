@@ -141,7 +141,7 @@ def _ts(t: float) -> str:
 
 
 def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str | None,
-              cfg: dict, title_y: int = 230) -> str:
+              cfg: dict, title_y: int = 230, overlay: str | None = None) -> str:
     c = cfg
     font, size = c["font"], c["font_size"]
     col, hi = _ass_color(c["color"]), _ass_color(c["highlight_color"])
@@ -156,6 +156,8 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
         f"{c['outline']},2,2,70,70,{c['position_from_bottom']},1",
         f"Style: Title,{font},{int(size * 0.72)},&H00000000,&H00000000,&H00FFFFFF,&H00FFFFFF,"
         f"-1,0,0,0,100,100,0,0,3,18,0,8,90,90,{title_y},1",
+        f"Style: Tag,{font},{int(size * 0.55)},&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,"
+        "-1,0,0,0,100,100,0,0,1,3,1,2,60,60,150,1",
         "", "[Events]",
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
     ]
@@ -163,6 +165,9 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
     if title:
         safe = title.replace("{", "(").replace("}", ")")
         lines.append(f"Dialogue: 1,{_ts(0)},{_ts(dur)},Title,,0,0,0,,{safe}")
+    if overlay:  # e.g. the streamer's handle, when a campaign requires it on screen
+        safe = overlay.replace("{", "(").replace("}", ")")
+        lines.append(f"Dialogue: 1,{_ts(0)},{_ts(dur)},Tag,,0,0,0,,{safe}")
 
     # group words into short chunks; break on pauses
     chunks, cur = [], []
@@ -196,7 +201,7 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
 
 # ---------------------------------------------------------------- render
 
-def render_clip(src: Path, clip: dict, out: Path, cfg: dict) -> str:
+def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None = None) -> str:
     """Render one vertical clip. Returns the layout used."""
     w, h = probe(src)
     start, end = clip["start"], clip["end"]
@@ -239,7 +244,7 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict) -> str:
         ass_name = out.stem + ".ass"
         (workdir / ass_name).write_text(build_ass(
             clip["words"], start, end, clip.get("title") if cap.get("show_title", True) else None, cap,
-            title_y=610 if layout == "split" else 230))
+            title_y=610 if layout == "split" else 230, overlay=overlay))
         graph += f";[base]ass={ass_name}[v]"
     else:
         graph += ";[base]null[v]"

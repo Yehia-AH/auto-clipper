@@ -10,9 +10,39 @@
 #   https://www.youtube.com/@Creator/streams  -> only past live streams
 #   https://www.twitch.tv/creator             -> past Twitch broadcasts (VODs)
 #   https://www.youtube.com/playlist?list=... -> a playlist
+#
+# A source can also carry campaign rules:
+#   name:     must appear in every caption (added automatically if missing)
+#   hashtags: always included in the caption
+#   notes:    extra instructions for picking moments
+#   overlay:  small text shown on the video the whole time (e.g. a required @handle)
+#   reminder: shown in Telegram with each batch of clips
+#   auto:     false = don't watch this channel; only clip links you run by hand
 sources:
-  # - https://www.youtube.com/@SomeCreator
-  # - https://www.twitch.tv/somestreamer
+  # Reach: $5,000 Clix GTA VI Marathon Pool (split by views, paid when the pool ends)
+  # Rules: https://reachclipping.com/ClixGTA
+  - url: https://www.twitch.tv/clix
+    name: Clix
+    hashtags: ["#Clix", "#GTA6"]
+    notes: >
+      Only clip his GTA 6 marathon. Clix must be the main subject of every clip:
+      pick moments where Clix himself is talking, reacting or doing something,
+      not moments that are mostly about other people.
+    reminder: >
+      Clix campaign: submit each clip link on Content Rewards within 30 minutes of
+      posting. Your audience must be mostly US/CA/UK/AU/NZ. One strike bans you
+      from all Reach campaigns, so follow the rules exactly.
+
+  # Reach: SypherPK $7,500 campaign ($2 per 1K views, $20 min / $500 max payout).
+  # Only VODs from the November 15 stream (Sypher, Replays or Maddynf) count, so
+  # this channel is not watched automatically: run those VOD links by hand.
+  - url: https://www.twitch.tv/sypherpk
+    name: SypherPK
+    hashtags: ["#SypherPK"]
+    auto: false
+    reminder: >
+      SypherPK campaign: submit each clip link on Content Rewards. Check the
+      campaign rules on Content Rewards before posting.
 
 # How many of the newest uploads to look at per source each run.
 lookback_videos: 3
@@ -27,22 +57,24 @@ min_clip_seconds: 15
 max_clip_seconds: 50
 # Tell the AI what your audience likes. Shapes which moments it picks.
 niche_notes: >
-  GTA 6 / gaming stream clips for TikTok, YouTube Shorts and Reels. Viewers want:
-  the streamer's funniest or most heated reactions, chaotic moments (chases, crashes,
-  police, fails, wild NPC encounters), first reactions to new GTA 6 features or
-  locations, clutch wins and big rage moments, and banter that's funny with no
-  context. The first 2 seconds must already be loud, funny or surprising. Avoid
-  menus, loading screens, reading chat, sponsor reads and long quiet driving.
+  Gaming stream clips (GTA 6 and other games) for TikTok, YouTube Shorts and Reels.
+  Viewers want: the streamer's funniest or most heated reactions, chaotic moments
+  (chases, crashes, police, fails, wild NPC encounters), first reactions to new
+  features or locations, clutch wins and big rage moments, and banter that's funny
+  with no context. The first 2 seconds must already be loud, funny or surprising.
+  Avoid menus, loading screens, reading chat, sponsor reads and long quiet stretches.
 
 model: claude-opus-5-5
 effort: medium
 
 # Live streams (anything longer than long_video_minutes counts as a stream).
-# Streams are clipped once they've ended and the VOD is up, usually within a few hours.
+# Streams are clipped once the VOD is up. Live Twitch marathons are clipped while they run,
+# one finished part at a time.
 long_video_minutes: 90
 stream_clips_per_hour: 3     # e.g. a 4h stream -> up to 12 clips
 max_clips_per_video: 15
-max_stream_hours: 8          # marathon streams are clipped in parts this long, one part per run
+max_stream_hours: 8          # streams longer than this are clipped in parts
+stream_part_hours: 4         # part length; live Twitch marathons are clipped as each part finishes
 stream_whisper_model: base   # faster model so long streams fit in one run
 
 # Transcription (faster-whisper). tiny/base/small/medium. Bigger = slower + better.
