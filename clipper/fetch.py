@@ -3,6 +3,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -107,8 +108,11 @@ def list_new_videos(cfg: dict, state: dict) -> list[dict]:
                 dur = e.get("duration")
                 if dur and dur < cfg["min_source_minutes"] * 60:
                     continue
-                if e.get("live_status") in ("is_live", "is_upcoming", "post_live"):
+                if e.get("live_status") in ("is_upcoming", "post_live") or (
+                        e.get("live_status") == "is_live" and "twitch.tv" not in src):
                     continue  # wait until the stream is over and the VOD is ready
+                if before_start(e, settings):
+                    continue  # older than the campaign's start date
                 if any(f["id"] == vid for f in found):
                     continue
                 url = e.get("url") or e.get("webpage_url") or vid
@@ -124,19 +128,26 @@ def probe_url(url: str) -> dict:
         return ydl.extract_info(url, download=False)
 
 
-def download(url: str, workdir: Path, cfg: dict, part: int = 0) -> dict:
+def download(url: str, workdir: Path, cfg: dict, part: int = 0,
+             src_settings: dict | None = None) -> dict:
     """Download a video or stream VOD as mp4.
     Returns {id, title, path, duration, url, part, parts}.
     Long streams are fetched at 720p. Marathon streams longer than max_stream_hours are
     split into parts of that length; `part` picks which one (one part per run)."""
     info = probe_url(url)
-    if info.get("is_live") or info.get("live_status") in ("is_live", "is_upcoming", "post_live"):
+    is_twitch = "twitch.tv" in url
+    live = info.get("is_live") or info.get("live_status") in ("is_live", "is_upcoming", "post_live")
+    if live and not is_twitch:
         raise NotReady("stream is still live or the VOD is still processing")
+    if src_settings and before_start(info, src_settings):
+        raise Skip(f"recorded before the campaign start ({src_settings.get('since')})")
     dur = info.get("duration") or 0
     ts = info.get("timestamp") or info.get("release_timestamp")
-    # Twitch lists the VOD of a stream that's still going (its end is ~now). For
-    # marathons we clip the parts that are already finished instead of waiting days.
-    recording = bool(ts and dur and time.time() - (ts + dur) < 20 * 60 and "twitch.tv" in url)
+    # A Twitch VOD of a stream that's still going is marked live (and its end is ~now).
+    # For marathons we clip the hours that are already recorded instead of waiting days.
+    recording = is_twitch and bool(live or (ts and dur and time.time() - (ts + dur) < 20 * 60))
+    if recording and not dur:
+        raise NotReady("stream is live but its length isn't known yet")
     part_len = cfg["stream_part_hours"] * 3600
     split = recording or part > 0 or dur > cfg["max_stream_hours"] * 3600
     if recording:
@@ -164,11 +175,17 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0) -> dict:
         "noplaylist": True,
         "concurrent_fragment_downloads": 8,  # stream VODs come in many small pieces
     }
-    if split:
-        opts["download_ranges"] = yt_dlp.utils.download_range_func(None, [(start, end)])
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(url, download=True)
-        path = Path(ydl.prepare_filename(info)).with_suffix(".mp4")
+    if recording:
+        # yt-dlp can't cut a range out of a live recording, so cut it from the HLS
+        # playlist ourselves (it already holds every segment recorded so far)
+        path = workdir / f"{info['id']}_p{part}.mp4"
+        cut_hls(info, height, start, end - start, path)
+    else:
+        if split:
+            opts["download_ranges"] = yt_dlp.utils.download_range_func(None, [(start, end)])
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            path = Path(ydl.prepare_filename(info)).with_suffix(".mp4")
     title = info.get("title") or info["id"]
     if split:
         total = "live" if recording else f"of {parts}"
@@ -179,3 +196,39 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0) -> dict:
             "duration": (end - start) if split else (info.get("duration") or dur),
             "url": info.get("webpage_url") or url, "part": part, "parts": parts,
             "source": find_source(cfg, url, info)}
+
+
+def before_start(info: dict, settings: dict) -> bool:
+    """True if a video was recorded before the source's `since` date (YYYY-MM-DD)."""
+    since = str(settings.get("since") or "").strip()
+    if not since:
+        return False
+    ts = info.get("timestamp") or info.get("release_timestamp")
+    if ts:
+        day = time.strftime("%Y-%m-%d", time.gmtime(ts))
+    elif info.get("upload_date"):
+        d = str(info["upload_date"])
+        day = f"{d[:4]}-{d[4:6]}-{d[6:]}"
+    else:
+        return False  # unknown date: let it through
+    return day < since
+
+
+def cut_hls(info: dict, height: int, start: float, length: float, out: Path) -> None:
+    """Copy [start, start+length) out of an HLS (m3u8) format with ffmpeg."""
+    fmts = [f for f in info.get("formats") or []
+            if "m3u8" in (f.get("protocol") or "") and f.get("vcodec") != "none"]
+    if not fmts:
+        raise RuntimeError("no HLS format found for the live recording")
+    ok = [f for f in fmts if (f.get("height") or 0) <= height] or fmts
+    fmt = max(ok, key=lambda f: (f.get("height") or 0, f.get("tbr") or 0))
+    headers = "".join(f"{k}: {v}\r\n" for k, v in (fmt.get("http_headers") or {}).items())
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-nostdin"]
+    if headers:
+        cmd += ["-headers", headers]
+    cmd += ["-ss", f"{start:.0f}", "-i", fmt["url"], "-t", f"{length:.0f}",
+            "-map", "0:v:0", "-map", "0:a:0?", "-c", "copy", "-bsf:a", "aac_adtstoasc",
+            "-movflags", "+faststart", str(out)]
+    print(f"[fetch] cutting {start / 3600:.1f}h-{(start + length) / 3600:.1f}h "
+          f"from the live recording ({fmt.get('height')}p)")
+    subprocess.run(cmd, check=True, timeout=3 * 3600)

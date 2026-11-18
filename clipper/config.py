@@ -20,6 +20,7 @@ DEFAULTS = {
     "stream_whisper_model": "base",
     "stream_clips_per_hour": 3,
     "max_clips_per_video": 15,
+    "min_score": 6,
     "max_stream_hours": 8,
     "stream_part_hours": 4,
     "processing_ratio": 0.5,
@@ -69,7 +70,7 @@ def normalize_source(s) -> dict:
     s = dict(s)
     s["url"] = str(s["url"]).strip()
     s["hashtags"] = ["#" + str(h).lstrip("#").replace(" ", "") for h in (s.get("hashtags") or [])]
-    for k in ("name", "notes", "overlay", "reminder"):
-        s[k] = (s.get(k) or "").strip()
+    for k in ("name", "notes", "overlay", "reminder", "since"):
+        s[k] = str(s.get(k) or "").strip()
     s.setdefault("auto", True)  # False = only clip when a URL is run by hand
     return s

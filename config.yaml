@@ -17,12 +17,14 @@
 #   notes:    extra instructions for picking moments
 #   overlay:  small text shown on the video the whole time (e.g. a required @handle)
 #   reminder: shown in Telegram with each batch of clips
+#   since:    only clip videos recorded on/after this date (YYYY-MM-DD)
 #   auto:     false = don't watch this channel; only clip links you run by hand
 sources:
   # Reach: $5,000 Clix GTA VI Marathon Pool (split by views, paid when the pool ends)
   # Rules: https://reachclipping.com/ClixGTA
   - url: https://www.twitch.tv/clix
     name: Clix
+    since: 2026-11-18      # only footage from the GTA marathon (started Nov 18)
     hashtags: ["#Clix", "#GTA6"]
     notes: >
       Only clip his GTA 6 marathon. Clix must be the main subject of every clip:
@@ -73,6 +75,7 @@ effort: medium
 long_video_minutes: 90
 stream_clips_per_hour: 3     # e.g. a 4h stream -> up to 12 clips
 max_clips_per_video: 15
+min_score: 6                 # drop moments Claude rates below this (1-10)
 max_stream_hours: 8          # streams longer than this are clipped in parts
 stream_part_hours: 1         # part length; live Twitch marathons are clipped as each hour finishes
 stream_whisper_model: base   # faster model so long streams fit in one run

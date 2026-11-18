@@ -66,6 +66,10 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
     picks = pick_clips(segments, video["title"], cfg)
     clips = snap_to_words(picks, all_words(segments), cfg)
     clips.sort(key=lambda c: -c["score"])
+    weak = [c for c in clips if c.get("score", 10) < cfg["min_score"]]
+    clips = [c for c in clips if c.get("score", 10) >= cfg["min_score"]]
+    if weak:
+        print(f"[select] dropped {len(weak)} weak moment(s) scoring under {cfg['min_score']}")
     clips = [apply_campaign(c, src) for c in clips[: cfg["max_clips_per_video"]]]
     print(f"[select] {len(picks)} suggested, {len(clips)} kept")
 
@@ -159,7 +163,8 @@ def main() -> None:
                         print(f"[later] not enough time left for {url}, next run will take it")
                         break
                     part = state["partial"].get(item["id"], 0)
-                    video = fetch.download(url, work, cfg, part)
+                    src = item.get("source") or fetch.find_source(cfg, url)
+                    video = fetch.download(url, work, cfg, part, src)
                     if item.get("source", {}).get("name") or item.get("source", {}).get("notes"):
                         video["source"] = item["source"]
                     out = process_video(video, cfg)
