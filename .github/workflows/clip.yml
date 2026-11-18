@@ -34,6 +34,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # lets a run start the next one while a marathon still has hours to clip
 
 # Hourly checks share one lane, so the same stream is never clipped twice at once.
 # Runs where you paste video URLs get their own lane and run in parallel.
@@ -141,3 +142,19 @@ jobs:
             sleep $((attempt * 5))
           done
           echo "Could not save progress after 5 tries" && exit 1
+
+      - name: Keep going if a stream still has hours to clip
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # GitHub's hourly schedule can be late or skipped. If this run clipped
+          # something and a long stream still has parts waiting, start the next
+          # run right away. (Stops by itself once everything is caught up.)
+          clipped=$(python -c "import json;print(len(json.load(open('.last_run.json'))))" 2>/dev/null || echo 0)
+          pending=$(python -c "import json;print(len(json.load(open('state/processed.json')).get('partial',{})))" 2>/dev/null || echo 0)
+          echo "clipped=$clipped pending=$pending"
+          if [ "$clipped" -gt 0 ] && [ "$pending" -gt 0 ]; then
+            gh workflow run clip.yml --ref main && echo "Started the next run"
+          fi
+
