@@ -49,6 +49,14 @@ itself is genuinely funny or shocking without any visuals. You only have the \
 transcript, so prefer moments where the speech itself makes clear something exciting \
 just happened.
 
+Lines may also show "(chat N)": how hard Twitch chat reacted right after that line, \
+0-10 (3 = normal, 6 = double the usual rate, 9-10 = chat exploded). Chat reacts 5-20 \
+seconds AFTER the moment happens, so a chat spike is the strongest signal of all that \
+something clip-worthy just happened. When there is a big chat spike, build the clip \
+around it: start about 15-20 seconds BEFORE the spike so the viewer gets the setup, \
+and end just after the reaction / punchline. A moment with both high energy and high \
+chat is almost always the best clip available.
+
 Use the timestamps in the transcript exactly: a clip's start must be the start time \
 of the line it opens on, and its end must be the end time of the line it closes on. \
 Clips must not overlap. Sort clips by score, best first."""
@@ -58,6 +66,7 @@ def _format_transcript(segments: list[dict]) -> str:
     return "\n".join(
         f"[{s['start']:.2f}-{s['end']:.2f}]"
         + (f" (energy {s['energy']})" if "energy" in s else "")
+        + (f" (chat {s['chat']})" if "chat" in s else "")
         + f" {s['text']}" for s in segments)
 
 
@@ -65,12 +74,21 @@ def _hms(t: float) -> str:
     return f"{int(t // 3600)}:{int(t % 3600 // 60):02d}:{int(t % 60):02d}"
 
 
-def pick_clips(segments: list[dict], title: str, cfg: dict) -> list[dict]:
+def _spike_note(spikes: list[dict], a: float, b: float) -> str:
+    inside = [x for x in spikes if a <= x["t"] < b]
+    if not inside:
+        return ""
+    lines = ", ".join(f"{_hms(x['t'])} ({x['x']}x normal)" for x in inside)
+    return f"Biggest chat spikes in this section: {lines}.\n\n"
+
+
+def pick_clips(segments: list[dict], title: str, cfg: dict, spikes: list | None = None) -> list[dict]:
     """Short videos: one request. Long streams: one request per ~hour of footage,
     so moments deep into a stream get the same attention as the start."""
     total = segments[-1]["end"]
     if total <= cfg["long_video_minutes"] * 60:
-        return _ask(segments, title, cfg["clips_per_video"], "", cfg)
+        return _ask(segments, title, cfg["clips_per_video"],
+                    _spike_note(spikes or [], 0, total + 1), cfg)
 
     window = 60 * 60
     chunks, cur, cur_start = [], [], segments[0]["start"]
@@ -90,6 +108,7 @@ def pick_clips(segments: list[dict], title: str, cfg: dict) -> list[dict]:
                 f"({_hms(chunk[0]['start'])} to {_hms(chunk[-1]['end'])}). Streams have "
                 "downtime, chatter with chat, and loading screens: skip those, only pick "
                 "moments that work for someone who never watched the stream.\n\n")
+        note += _spike_note(spikes or [], chunk[0]["start"], chunk[-1]["end"] + 20)
         got = _ask(chunk, title, n, note, cfg)
         print(f"[select] part {i}/{len(chunks)}: {len(got)} moments")
         picks.extend(got)

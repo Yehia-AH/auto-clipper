@@ -17,6 +17,7 @@ from . import deliver, fetch
 from .config import ROOT, load_config
 from .render import render_clip
 from .highlights import pick_clips, snap_to_words
+from .chat import add_chat, chat_counts
 from .transcribe import add_energy, all_words, transcribe
 
 
@@ -67,9 +68,16 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False) -> Path | N
         add_energy(video["path"], segments)
     except Exception as e:  # energy is a bonus signal; never fail a video over it
         print(f"[energy] skipped: {e}")
+    spikes = []
+    if video.get("twitch_vod"):
+        off = video.get("offset") or 0
+        counts = chat_counts(video["twitch_vod"], off, off + (video.get("duration") or segments[-1]["end"]))
+        if counts:
+            spikes = add_chat(segments, counts)
+            print(f"[chat] {len(spikes)} spikes: " + ", ".join(f"{x['t'] // 60}m{x['t'] % 60:02d}s x{x['x']}" for x in spikes))
     if src.get("layout"):
         cfg = {**cfg, "layout": src["layout"]}
-    picks = pick_clips(segments, video["title"], cfg)
+    picks = pick_clips(segments, video["title"], cfg, spikes)
     clips = snap_to_words(picks, all_words(segments), cfg)
     clips.sort(key=lambda c: -c["score"])
     weak = [c for c in clips if c.get("score", 10) < cfg["min_score"]]

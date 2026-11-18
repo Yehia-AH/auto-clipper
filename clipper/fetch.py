@@ -195,6 +195,7 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0,
     return {"id": info["id"], "title": title, "path": path,
             "duration": (end - start) if split else (info.get("duration") or dur),
             "url": info.get("webpage_url") or url, "part": part, "parts": parts,
+            "offset": start, "twitch_vod": info["id"] if is_twitch else None,
             "source": find_source(cfg, url, info)}
 
 
