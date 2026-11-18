@@ -1,7 +1,7 @@
 # Auto Clipper ✂️
 
 Turns long videos (podcasts, streams, interviews) into ready-to-post vertical
-clips, automatically, every 6 hours. You only do the posting.
+clips, automatically, every hour. You only do the posting.
 
 ```
 new upload on a watched channel
@@ -34,14 +34,14 @@ Edit `config.yaml` and add channels or playlists under `sources:`. Also set
 
 ### 3. Run it
 **Actions → Auto Clip → Run workflow.** Paste a video URL to test one right away,
-or leave it empty to check your sources. After that it runs every 6 hours on its own.
+or leave it empty to check your sources. After that it runs every hour on its own.
 
 ## Live streams
 Add a channel and it clips both uploads and past live streams:
 - `https://www.youtube.com/@Creator`: uploads + the /streams tab
 - `https://www.twitch.tv/creator`: past broadcasts (VODs)
 
-Streams are clipped after they end, once the VOD is up (it checks every 6 hours).
+Streams are clipped after they end, once the VOD is up (it checks every hour).
 Long streams are handled differently: downloaded at 720p, transcribed with a
 faster model, and scanned one hour at a time so moments late in the stream get
 found too (`stream_clips_per_hour`, default 3). Streams longer than
