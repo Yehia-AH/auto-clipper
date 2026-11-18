@@ -10,7 +10,7 @@ def telegram_enabled() -> bool:
 
 
 def _api(method: str) -> str:
-    return f"https://api.telegram.org/bot{os.environ["TELEGRAM_BOT_TOKEN"].strip()}/{method}"
+    return f"https://api.telegram.org/bot{os.environ['TELEGRAM_BOT_TOKEN'].strip()}/{method}"
 
 
 def send_message(text: str) -> None:
