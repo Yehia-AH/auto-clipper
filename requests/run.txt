@@ -1,0 +1,4 @@
+# Committing a change to this file starts a clip run (used by Claude, since it
+# can push but can't press "Run workflow"). One line:
+#   <campaign> <url> [more urls]
+# campaign = a source name from config.yaml (Clix, SypherPK) or auto-detect.

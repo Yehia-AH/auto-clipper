@@ -1,10 +1,16 @@
 name: Auto Clip
 run-name: >-
-  ${{ inputs.urls != '' && format('✂️ {0}: {1}', inputs.campaign != 'auto-detect' && inputs.campaign || 'Clip', inputs.urls)
+  ${{ github.event_name == 'push' && github.event.head_commit.message
+  || inputs.urls != '' && format('✂️ {0}: {1}', inputs.campaign != 'auto-detect' && inputs.campaign || 'Clip', inputs.urls)
   || (github.event_name == 'schedule' && '⏰ Clix: hourly check'
   || '🔎 Clix: check now') }}
 
 on:
+  # Claude starts runs by committing a link to requests/run.txt
+  # (format: "<campaign or auto-detect> <url> [more urls]")
+  push:
+    branches: [main]
+    paths: ["requests/run.txt"]
   schedule:
     - cron: "17 * * * *"   # every hour (repo is public, so Actions minutes are free)
   workflow_dispatch:
@@ -32,7 +38,7 @@ permissions:
 # Hourly checks share one lane, so the same stream is never clipped twice at once.
 # Runs where you paste video URLs get their own lane and run in parallel.
 concurrency:
-  group: ${{ inputs.urls != '' && format('clipper-manual-{0}', github.run_id) || 'clipper-auto' }}
+  group: ${{ (inputs.urls != '' || github.event_name == 'push') && format('clipper-manual-{0}', github.run_id) || 'clipper-auto' }}
   cancel-in-progress: false
 
 jobs:
@@ -60,6 +66,13 @@ jobs:
       - name: Install Python packages
         run: pip install -r requirements.txt
 
+      - name: Read the request file (runs started by Claude)
+        if: github.event_name == 'push'
+        run: |
+          line=$(grep -v '^#' requests/run.txt | grep -v '^\s*$' | head -1)
+          echo "REQ_CAMPAIGN=$(echo "$line" | awk '{print $1}')" >> "$GITHUB_ENV"
+          echo "REQ_URLS=$(echo "$line" | cut -d' ' -f2-)" >> "$GITHUB_ENV"
+
       - name: Find moments, cut and caption clips
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -73,6 +86,11 @@ jobs:
           CAMPAIGN: ${{ inputs.campaign }}
         run: |
           EXTRA=""
+          URLS="${URLS:-$REQ_URLS}"
+          CAMPAIGN="${CAMPAIGN:-$REQ_CAMPAIGN}"
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ -z "$URLS" ]; then
+            echo "Request file has no link in it, nothing to do."; echo "[]" > .last_run.json; exit 0
+          fi
           if [ -n "$CLIPS" ]; then EXTRA="--clips $CLIPS"; fi
           if [ -n "$CAMPAIGN" ] && [ "$CAMPAIGN" != "auto-detect" ]; then EXTRA="$EXTRA --campaign $CAMPAIGN"; fi
           if [ -n "$URLS" ]; then
