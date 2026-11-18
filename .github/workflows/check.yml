@@ -1,0 +1,29 @@
+name: Setup check
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Optional: a video URL to test downloading"
+        required: false
+        default: ""
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -q anthropic yt-dlp requests pyyaml
+      - name: Check keys
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YTDLP_COOKIES: ${{ secrets.YTDLP_COOKIES }}
+          URL: ${{ inputs.url }}
+        run: python -m clipper.check "$URL"
