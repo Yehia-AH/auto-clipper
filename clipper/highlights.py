@@ -182,3 +182,12 @@ def snap_to_words(clips: list[dict], words: list[dict], cfg: dict) -> list[dict]
             continue  # overlaps a better clip
         result.append({**c, "start": round(start, 2), "end": round(end, 2), "words": inside})
     return result
+
+
+def find_moment(segments: list[dict], title: str, description: str, cfg: dict) -> list[dict]:
+    """Find one specific moment the user described (returns [] if it isn't here)."""
+    note = (f"The user is looking for ONE specific moment: \"{description}\". Return exactly "
+            "that moment as a single clip if it happens in this transcript, with the setup "
+            "before it and the reaction after it. If it is not in this transcript, return an "
+            "empty list of clips. Ignore the usual audience notes; only this moment matters.\n\n")
+    return _ask(segments, title, 1, note, {**cfg, "max_clip_seconds": max(cfg["max_clip_seconds"], 60)})

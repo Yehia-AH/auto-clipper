@@ -101,7 +101,15 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
     if video.get("parts", 1) > 1 or video.get("part"):
         # one hour of a long stream: ask for a few, keep only the best
         cfg = {**cfg, "clips_per_video": cfg["stream_clips_per_hour"] + 2}
-    picks = pick_clips(segments, video["title"], cfg, spikes)
+    if cfg.get("find"):
+        # looking for one specific moment the user described: no quality filters
+        from .highlights import find_moment
+        picks = find_moment(segments, video["title"], cfg["find"], cfg)
+        print(f"[find] '{cfg['find']}': {'found' if picks else 'not in this part'}")
+        cfg = {**cfg, "min_score": 0}
+        src = {**src, "require_game": ""}
+    else:
+        picks = pick_clips(segments, video["title"], cfg, spikes)
     clips = snap_to_words(picks, all_words(segments), cfg)
     clips.sort(key=lambda c: -c["score"])
     weak = [c for c in clips if c.get("score", 10) < cfg["min_score"]]
@@ -264,7 +272,10 @@ def main() -> None:
             # "parts=2-13" among the links = re-make just those hours of a long stream
             # (doesn't touch the live progress, so it can run next to the hourly runs)
             remake = next((u for u in args.urls if u.startswith("parts=")), None)
-            urls = [u for u in args.urls if not u.startswith("parts=")]
+            find = next((u for u in args.urls if u.startswith("find=")), None)
+            if find:  # find=fixing_a_pipe_lady_walks_in -> look for that one moment
+                cfg["find"] = find[5:].replace("_", " ")
+            urls = [u for u in args.urls if not u.startswith(("parts=", "find="))]
             if remake:
                 remake_urls, urls = urls, []
             todo = [{"id": None, "url": u, "duration": 0, **({"source": forced} if forced else {})}
