@@ -4,5 +4,5 @@
 # campaign = a source name from config.yaml (Clix, SypherPK) or auto-detect.
 # Or just the word "watched" (commit message must contain [watched]) to check
 # the auto-watched streamers right now, in the same lane as the hourly runs.
-# requested at 2026-11-19 02:51:10 UTC
-Clix https://www.twitch.tv/videos/2932204601 parts=3-7
+# requested at 2026-11-19 02:51:20 UTC
+Clix https://www.twitch.tv/videos/2932204601 parts=9-9
