@@ -161,7 +161,15 @@
   },
   "finished_sources": {},
   "last_digest": "2026-11-19",
-  "live_sessions": {},
+  "live_sessions": {
+    "321174197598": {
+      "hours_clipped": [],
+      "seen": 1795103761,
+      "source": "https://www.twitch.tv/clix",
+      "start": 1795099708,
+      "title": "Clix (live) 2026-11-19 15:56"
+    }
+  },
   "partial": {
     "v2932204601": 27
   },
