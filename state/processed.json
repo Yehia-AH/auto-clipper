@@ -1,5 +1,5 @@
 {
-  "batch_counter": 6,
+  "batch_counter": 9,
   "clips": [
     {
       "at": 1795050101,
@@ -91,13 +91,55 @@
       "score": 8,
       "streamer": "Clix",
       "title": "He felt the baby kick through his controller"
+    },
+    {
+      "at": 1795072749,
+      "id": "7.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Clix Gets Baited On PS5 And Rages"
+    },
+    {
+      "at": 1795073326,
+      "id": "8.1",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "Clix Drunk Drives to the GTA 6 Strip Club"
+    },
+    {
+      "at": 1795073326,
+      "id": "8.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Every Door Gets Worse in GTA 6"
+    },
+    {
+      "at": 1795073326,
+      "id": "8.3",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Wheelchair Guy Is Speeding in GTA 6"
+    },
+    {
+      "at": 1795073753,
+      "id": "9.1",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "Chad Just Threw Him Into The AIR"
+    },
+    {
+      "at": 1795073753,
+      "id": "9.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Clix Finds Out Donnie Is Dead"
     }
   ],
   "failures": {},
   "finished_sources": {},
   "last_digest": "",
   "partial": {
-    "v2932204601": 14
+    "v2932204601": 21
   },
   "partial_urls": {
     "v2932204601": "https://www.twitch.tv/videos/2932204601"
