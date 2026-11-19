@@ -155,11 +155,13 @@
       "title": "Clix Loses It During Lucia's Prison Call"
     }
   ],
-  "failures": {},
+  "failures": {
+    "clix": 1
+  },
   "finished_sources": {},
   "last_digest": "2026-11-19",
   "partial": {
-    "v2932204601": 23
+    "v2932204601": 24
   },
   "partial_urls": {
     "v2932204601": "https://www.twitch.tv/videos/2932204601"
