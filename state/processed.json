@@ -1,5 +1,5 @@
 {
-  "batch_counter": 14,
+  "batch_counter": 15,
   "clips": [
     {
       "at": 1795050101,
@@ -216,6 +216,27 @@
       "score": 7,
       "streamer": "Clix",
       "title": "\"This Is About To Be Bad\""
+    },
+    {
+      "at": 1795121810,
+      "id": "15.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Clix Just Lost $8000 Instantly"
+    },
+    {
+      "at": 1795121810,
+      "id": "15.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "His Family Caught Him Listening To This"
+    },
+    {
+      "at": 1795121810,
+      "id": "15.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "My Driving Is Only Good When..."
     }
   ],
   "failures": {
@@ -228,12 +249,13 @@
       "hours_clipped": [
         2,
         4,
-        5
+        5,
+        6
       ],
-      "seen": 1795121308,
+      "seen": 1795110264,
       "source": "https://www.twitch.tv/clix",
       "start": 1795099708,
-      "title": "Clix (live) 2026-11-19 20:48"
+      "title": "Clix (live) 2026-11-19 17:44"
     }
   },
   "partial": {},
