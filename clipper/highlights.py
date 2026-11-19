@@ -36,6 +36,10 @@ these, not just talking:
 - Crazy gameplay: a wild stunt, chase, crash, explosion, close call, glitch, chaotic NPC, \
 a fail, an insane play.
 - Big reactions: freakouts, screaming, disbelief, rage, laughing fits, jump scares.
+- Discoveries in the game: glitches and bugs, easter eggs, secrets, hidden details, \
+weird physics, a mechanic or feature he didn't know about, "wait, you can do THAT?", \
+"no way this is in the game". New-game discoveries get huge views: rank them high, and \
+start the clip just before he notices so viewers see it with him.
 - Chat moments: chat explodes, roasts him, or he reacts to something chat said.
 - The streamer himself: a funny bit, a hot take, a story, a roast, a relatable or \
 wholesome moment, his personality.
@@ -89,7 +93,7 @@ Lines may show '(Nx "clip it" in chat)': viewers literally asking for that momen
 be clipped. Treat that as a direct vote for the moment.
 
 Lines may show "(event: ...)": the streamer clearly describes something happening right \
-now (chase, crash, stunt, combat, npc_chaos, funny_dialogue, reaction, milestone). \
+now (chase, crash, stunt, combat, npc_chaos, funny_dialogue, reaction, milestone, discovery = a glitch / easter egg / hidden detail). \
 These are strong candidates, especially combined with high energy or chat. The setup \
 usually comes right before the line, so start the clip a little earlier.
 

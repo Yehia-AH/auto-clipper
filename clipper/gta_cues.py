@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 CATEGORIES = (
     "chase", "crash", "stunt", "combat", "npc_chaos", "funny_dialogue",
-    "roleplay", "reaction", "milestone",
+    "roleplay", "reaction", "milestone", "discovery",
 )
 CATEGORY_LABELS = {
     "chase": "Chase",
@@ -27,6 +27,7 @@ CATEGORY_LABELS = {
     "roleplay": "Roleplay",
     "reaction": "Reaction",
     "milestone": "Mission progress",
+    "discovery": "Glitch, easter egg or hidden detail (added for auto-clipper)",
 }
 
 
@@ -75,6 +76,8 @@ _RULES = (
     ("reaction", 0.79, r"(?:no way|oh my god|oh my goodness|what just happened|are you kidding me)"),
     ("reaction", 0.82, r"i (?:can't|cannot|can not) believe (?:that|this|it)"),
     ("reaction", 0.79, r"(?:holy (?:shit|crap)|that was (?:fucking |so |absolutely )?crazy|no me lo (?:creo|puedo creer))"),
+    ("discovery", 0.86, r"\b(?:glitch(?:ed|ing)?|bugged|easter egg|secret (?:room|area|spot|car|weapon)|hidden (?:room|area|spot|detail|car|weapon))\b"),
+    ("discovery", 0.82, r"\b(?:you can (?:actually )?do that|you can actually|they actually (?:added|put)|no way (?:that'?s|this is) in the game|look at the (?:detail|details))\b"),
     ("milestone", 0.86, r"(?:mission|heist) (?:passed|complete|completed|failed)"),
     ("milestone", 0.84, r"(?:passed|completed|finished|failed) (?:the|this|that|a) (?:mission|heist)"),
     ("milestone", 0.88, r"(?:final|last) wave (?:cleared|complete|completed|survived)"),
