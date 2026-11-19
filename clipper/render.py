@@ -229,6 +229,12 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
         elif layout == "split":
             boxes = [b for _, b in samples if b]
             box = tuple(float(np.median([b[i] for b in boxes])) for i in range(3))
+            if box[2] >= 0.10 * w:
+                # a big face means the camera IS the picture (IRL / just chatting),
+                # not a webcam over gameplay: stacking would show the scene twice
+                box = None
+                plan = crop_plan(samples, w, cw)
+                layout = "crop"
         elif (box := webcam_box(samples, w, h)):
             layout = "split"
         else:
