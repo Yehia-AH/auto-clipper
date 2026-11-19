@@ -344,6 +344,8 @@ def main() -> None:
                     break
             except fetch.NotReady as e:
                 print(f"[later] {url}: {e}")
+            except TimeoutError as e:  # stuck download: retry next run, don't give up on it
+                print(f"[later] {url}: {e}")
             except fetch.Skip as e:
                 print(f"[skip] {url}: {e}")
                 if "all parts already clipped" in str(e):  # stream ended right after a part

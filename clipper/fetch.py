@@ -2,7 +2,9 @@
 import json
 import math
 import os
+import contextlib
 import re
+import signal
 import subprocess
 import tempfile
 import time
@@ -122,7 +124,27 @@ def list_new_videos(cfg: dict, state: dict) -> list[dict]:
                     url = f"https://www.youtube.com/watch?v={vid}"
                 found.append({"id": vid, "url": url, "title": e.get("title") or vid,
                               "duration": dur or 0, "source": settings})
+    for f_ in found:
+        print(f"[fetch] to clip: {f_['url']} ({f_['title'][:60]})")
     return found
+
+
+DOWNLOAD_LIMIT = 45 * 60  # seconds; a stuck download is dropped and retried next run
+
+
+@contextlib.contextmanager
+def time_limit(seconds: int, what: str):
+    """Abort the block if it takes longer than `seconds` (a hung download once ate a
+    whole 6-hour run). Raises TimeoutError, which the caller counts as a failure."""
+    def _alarm(signum, frame):
+        raise TimeoutError(f"{what} took longer than {seconds // 60} min, gave up")
+    old = signal.signal(signal.SIGALRM, _alarm)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, old)
 
 
 def probe_url(url: str) -> dict:
@@ -136,7 +158,9 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0,
     Returns {id, title, path, duration, url, part, parts}.
     Long streams are fetched at 720p. Marathon streams longer than max_stream_hours are
     split into parts of that length; `part` picks which one (one part per run)."""
-    info = probe_url(url)
+    print(f"[fetch] checking {url}" + (f" (hour {part + 1})" if part else ""))
+    with time_limit(5 * 60, "reading the video info"):
+        info = probe_url(url)
     is_twitch = "twitch.tv" in url
     live = info.get("is_live") or info.get("live_status") in ("is_live", "is_upcoming", "post_live")
     if live and not is_twitch:
@@ -177,6 +201,8 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0,
         "noplaylist": True,
         "concurrent_fragment_downloads": 8,  # stream VODs come in many small pieces
     }
+    print(f"[fetch] downloading {info.get('id')} {start / 3600:.1f}h-{(end or dur) / 3600:.1f}h "
+          f"at {height}p (limit {DOWNLOAD_LIMIT // 60} min)")
     if recording:
         # yt-dlp can't cut a range out of a live recording, so cut it from the HLS
         # playlist ourselves (it already holds every segment recorded so far)
@@ -185,7 +211,8 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0,
     else:
         if split:
             opts["download_ranges"] = yt_dlp.utils.download_range_func(None, [(start, end)])
-        with yt_dlp.YoutubeDL(opts) as ydl:
+        opts["socket_timeout"] = 60
+        with time_limit(DOWNLOAD_LIMIT, "downloading the video"), yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=True)
             path = Path(ydl.prepare_filename(info)).with_suffix(".mp4")
     title = info.get("title") or info["id"]
@@ -234,4 +261,8 @@ def cut_hls(info: dict, height: int, start: float, length: float, out: Path) -> 
             "-movflags", "+faststart", str(out)]
     print(f"[fetch] cutting {start / 3600:.1f}h-{(start + length) / 3600:.1f}h "
           f"from the live recording ({fmt.get('height')}p)")
-    subprocess.run(cmd, check=True, timeout=3 * 3600)
+    try:
+        subprocess.run(cmd, check=True, timeout=DOWNLOAD_LIMIT)
+    except subprocess.TimeoutExpired:
+        raise TimeoutError(f"cutting from the live recording took longer than "
+                           f"{DOWNLOAD_LIMIT // 60} min, gave up") from None
