@@ -177,8 +177,7 @@
     }
   ],
   "failures": {
-    "clix": 2,
-    "v2932204601": 1
+    "clix": 2
   },
   "finished_sources": {},
   "last_digest": "2026-11-19",
@@ -193,12 +192,8 @@
       "title": "Clix (live) 2026-11-19 17:44"
     }
   },
-  "partial": {
-    "v2932204601": 27
-  },
-  "partial_urls": {
-    "v2932204601": "https://www.twitch.tv/videos/2932204601"
-  },
+  "partial": {},
+  "partial_urls": {},
   "processed": {
     "v2929881837": {
       "date": "2026-11-18",
@@ -213,6 +208,11 @@
       "date": "2026-11-18",
       "output": "output/2026-11-18_lots-to-talk-about-gta-marathon-soon-dream-my-stre",
       "title": "\ud83c\udfc6 LOTS TO TALK ABOUT \ud83c\udfc6 GTA MARATHON SOON \ud83c\udfc6 DREAM MY STREAM WINNER ANNOUNCED \ud83c\udfc6 code clix for pc COME !vid"
+    },
+    "v2932204601": {
+      "date": "2026-11-19",
+      "output": null,
+      "title": "\ud83d\udea8 FIRST PERSON TO PLAY GTA \ud83d\udea8 EARLY ACCESS \ud83d\udea8 24/7 MARATHON \ud83d\udea8 PS5 GIVEAWAYS (part 29 of 29)"
     },
     "v2933739024": {
       "date": "2026-11-19",
