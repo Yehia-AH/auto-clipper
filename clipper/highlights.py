@@ -137,11 +137,9 @@ def _ask(segments: list[dict], title: str, n: int, note: str, cfg: dict) -> list
         "Write titles, captions and hashtags in the language of the video.\n\n"
         f"<transcript>\n{_format_transcript(segments)}\n</transcript>"
     )
-    response = client.beta.messages.create(
+    request = dict(
         model=cfg["model"],
         max_tokens=16000,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
         system=SYSTEM,
         output_config={
             "effort": cfg["effort"],
@@ -149,6 +147,12 @@ def _ask(segments: list[dict], title: str, n: int, note: str, cfg: dict) -> list
         },
         messages=[{"role": "user", "content": prompt}],
     )
+    if cfg["model"].startswith("claude-haiku"):
+        # Haiku has no server-side fallback model
+        response = client.messages.create(**request)
+    else:
+        response = client.beta.messages.create(
+            **request, betas=["server-side-fallback-2026-07-01"], fallbacks="default")
     if response.stop_reason == "refusal":
         print(f"[select] model declined this video: {response.stop_details}")
         return []

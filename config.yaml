@@ -73,7 +73,7 @@ niche_notes: >
   with no context. The first 2 seconds must already be loud, funny or surprising.
   Avoid menus, loading screens, reading chat, sponsor reads and long quiet stretches.
 
-model: claude-opus-5-5
+model: claude-haiku-5-5      # ~40x cheaper than Opus; set back to claude-opus-5-5 for the sharpest picks
 effort: medium
 
 # Live streams (anything longer than long_video_minutes counts as a stream).
