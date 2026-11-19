@@ -166,7 +166,7 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0,
         raise Skip("all parts already clipped")
     start, end = (part * part_len, min(dur, (part + 1) * part_len)) if split else (0, dur)
 
-    height = 720 if dur > cfg["long_video_minutes"] * 60 else 1080
+    height = cfg.get("max_height", 1080)  # 1080p: the webcam and game get blown up to fill a phone screen
     workdir.mkdir(parents=True, exist_ok=True)
     opts = {
         **_base_opts(),

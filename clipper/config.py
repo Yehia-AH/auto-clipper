@@ -15,6 +15,8 @@ DEFAULTS = {
     "niche_notes": "",
     "model": "claude-opus-5-5",
     "effort": "medium",
+    "check_model": "claude-haiku-5-5",
+    "max_height": 1080,
     "whisper_model": "small",
     "long_video_minutes": 90,
     "stream_whisper_model": "base",

@@ -75,8 +75,10 @@ niche_notes: >
   with no context. The first 2 seconds must already be loud, funny or surprising.
   Avoid menus, loading screens, reading chat, sponsor reads and long quiet stretches.
 
-model: claude-haiku-5-5      # ~40x cheaper than Opus; set back to claude-opus-5-5 for the sharpest picks
+model: claude-opus-5-5          # picks the moments + writes titles (best quality, ~$0.08 per stream hour)
 effort: medium
+check_model: claude-haiku-5-5   # cheap model for the "is this gameplay?" frame check
+max_height: 1080                # download resolution
 
 # Live streams (anything longer than long_video_minutes counts as a stream).
 # Streams are clipped once the VOD is up. Live Twitch marathons are clipped while they run,

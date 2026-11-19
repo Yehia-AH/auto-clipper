@@ -46,14 +46,15 @@ def shows_game(src: Path, start: float, end: float, game: str, cfg: dict) -> tup
     content = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": f}}
                for f in frames]
     content.append({"type": "text", "text": (
-        f"These are 3 frames from one short clip of a livestream. Is the streamer playing "
-        f"{game} in this clip, i.e. is {game} gameplay (or its in-game menus/map/cutscenes) "
-        f"on screen in most of the frames? A small webcam of the streamer on top of the game "
-        f"is normal. Answer false for IRL footage, just chatting, a desktop/browser, or a "
-        f"different game.")})
+        f"These are 3 frames from one short clip of a livestream. Is a video game being played "
+        f"in this clip: gameplay (or in-game menus, map or cutscenes) on screen in most of the "
+        f"frames? The game is most likely {game}, a brand-new game you may not recognise, so "
+        f"do NOT try to identify the game: any video game gameplay counts as true. A small "
+        f"webcam of the streamer over the game is normal. Answer false only for IRL camera "
+        f"footage, just chatting with no game on screen, or a desktop/browser.")})
     try:
         r = anthropic.Anthropic().messages.create(
-            model=cfg["model"], max_tokens=2000,
+            model=cfg.get("check_model") or cfg["model"], max_tokens=2000,
             output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCHEMA}},
             messages=[{"role": "user", "content": content}])
         if r.stop_reason == "refusal":
