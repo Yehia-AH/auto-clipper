@@ -1,5 +1,5 @@
 {
-  "batch_counter": 13,
+  "batch_counter": 14,
   "clips": [
     {
       "at": 1795050101,
@@ -195,6 +195,27 @@
       "score": 8,
       "streamer": "Clix",
       "title": "I didn't mean to do this"
+    },
+    {
+      "at": 1795118328,
+      "id": "14.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Was Fortnite Bigger Than GTA 6?"
+    },
+    {
+      "at": 1795118328,
+      "id": "14.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "He Checked His GTA 6 Progress"
+    },
+    {
+      "at": 1795118328,
+      "id": "14.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "\"This Is About To Be Bad\""
     }
   ],
   "failures": {
@@ -206,7 +227,8 @@
     "321174197598": {
       "hours_clipped": [
         2,
-        4
+        4,
+        5
       ],
       "seen": 1795110264,
       "source": "https://www.twitch.tv/clix",
