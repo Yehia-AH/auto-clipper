@@ -1,5 +1,5 @@
 {
-  "batch_counter": 10,
+  "batch_counter": 11,
   "clips": [
     {
       "at": 1795050101,
@@ -146,6 +146,13 @@
       "score": 6,
       "streamer": "Clix",
       "title": "Clix Fixing Leaks When She Walks In"
+    },
+    {
+      "at": 1795093087,
+      "id": "11.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Clix Loses It During Lucia's Prison Call"
     }
   ],
   "failures": {},
