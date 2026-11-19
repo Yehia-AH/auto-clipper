@@ -48,11 +48,28 @@ def send_message(text: str) -> bool:
                                  "text": text[:4000], "disable_web_page_preview": True})
 
 
+def _video_size(video: Path) -> dict:
+    import json
+    import subprocess
+    try:
+        out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                              "-show_entries", "stream=width,height:format=duration",
+                              "-of", "json", str(video)], capture_output=True, text=True).stdout
+        d = json.loads(out)
+        st = d["streams"][0]
+        return {"width": st["width"], "height": st["height"],
+                "duration": int(float(d["format"]["duration"]))}
+    except Exception:
+        return {}
+
+
 def send_clip(video: Path, post_text: str) -> bool:
     """Upload a clip with its ready-to-paste caption. Bots can send files up to 50 MB."""
     if video.stat().st_size > 49 * 1024 * 1024:
         return send_message(f"{video.name} is over 50 MB, grab it from the GitHub release.\n\n{post_text}")
-    ok = _post("sendVideo", {"chat_id": os.environ["TELEGRAM_CHAT_ID"].strip(),
-                             "caption": post_text[:1024], "supports_streaming": True}, video)
+    data = {"chat_id": os.environ["TELEGRAM_CHAT_ID"].strip(),
+            "caption": post_text[:1024], "supports_streaming": True}
+    data.update(_video_size(video))  # without this Telegram may show it squashed
+    ok = _post("sendVideo", data, video)
     time.sleep(1)  # stay well under Telegram's rate limits
     return ok

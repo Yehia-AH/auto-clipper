@@ -232,7 +232,7 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
 # ---------------------------------------------------------------- render
 
 def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None = None,
-                webcam: list | None = None) -> str:
+                webcam: list | None = None, gameplay_only: bool = False) -> str:
     """Render one vertical clip. Returns the layout used."""
     w, h = probe(src)
     start, end = clip["start"], clip["end"]
@@ -243,6 +243,10 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
     plan = box = None
     if cw >= w:  # source already vertical-ish
         layout = "blur"
+    elif webcam and layout in ("auto", "split") and gameplay_only:
+        # gameplay-only campaign with a known webcam spot: IRL clips are already
+        # dropped, so always stack (a cutscene close-up must not look like IRL)
+        layout = "fixedsplit"
     elif webcam and layout in ("auto", "split"):
         # the streamer's webcam spot is known: only check for IRL footage, where
         # a big face fills the camera and there is no webcam overlay

@@ -130,7 +130,7 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
     for i, clip in enumerate(clips, 1):
         name = f"clip_{i:02d}_{slugify(clip['title'], 40)}.mp4"
         layout = render_clip(video["path"], clip, out_dir / name, cfg, overlay=src.get("overlay"),
-                             webcam=src.get("webcam"))
+                             webcam=src.get("webcam"), gameplay_only=bool(src.get("require_game")))
         text = post_text(clip)
         (out_dir / name).with_suffix(".txt").write_text(f"{clip['title']}\n\n{text}\n")
         print(f"[render] {name} ({clip['end'] - clip['start']:.0f}s, {layout}, score {clip['score']})")
