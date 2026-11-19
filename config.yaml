@@ -30,7 +30,7 @@ sources:
     since: 2026-11-18      # only footage from the GTA marathon (started Nov 18)
     layout: split          # webcam on top, gameplay below
     single_stream: true    # 24h marathon: stop watching Clix once it's fully clipped
-    require_game: GTA 6    # Claude checks 3 frames per clip; drops IRL / chatting / other games
+    # require_game: GTA 6  # uncomment to keep only GTA 6 gameplay clips (drops IRL / chatting)
     hashtags: ["#Clix", "#GTA6"]
     notes: >
       Only clip his GTA 6 marathon. Clix must be the main subject of every clip:
