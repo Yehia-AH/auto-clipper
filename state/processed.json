@@ -1,11 +1,33 @@
 {
-  "batch_counter": 0,
-  "clips": [],
+  "batch_counter": 1,
+  "clips": [
+    {
+      "at": 1795050101,
+      "id": "1.1",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "The Pepper Spray Guy Got CAUGHT"
+    },
+    {
+      "at": 1795050101,
+      "id": "1.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Pepper Sprayed, Groped AND a Car Crash"
+    },
+    {
+      "at": 1795050101,
+      "id": "1.3",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Watch Him Unload the Pepper Spray"
+    }
+  ],
   "failures": {},
   "finished_sources": {},
   "last_digest": "",
   "partial": {
-    "v2932204601": 13
+    "v2932204601": 14
   },
   "partial_urls": {
     "v2932204601": "https://www.twitch.tv/videos/2932204601"
