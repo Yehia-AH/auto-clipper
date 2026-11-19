@@ -260,8 +260,14 @@ def main() -> None:
                                if s["name"].lower() == args.campaign.lower()), None)
                 print(f"[campaign] using {args.campaign} rules" if forced
                       else f"[campaign] no source named {args.campaign} in config.yaml")
+            # "parts=2-13" among the links = re-make just those hours of a long stream
+            # (doesn't touch the live progress, so it can run next to the hourly runs)
+            remake = next((u for u in args.urls if u.startswith("parts=")), None)
+            urls = [u for u in args.urls if not u.startswith("parts=")]
+            if remake:
+                remake_urls, urls = urls, []
             todo = [{"id": None, "url": u, "duration": 0, **({"source": forced} if forced else {})}
-                    for u in args.urls]
+                    for u in urls]
 
         # GitHub stops a job after 6h. RUN_BUDGET_MINUTES (set by the workflow) makes
         # us leave a video for the next run instead of getting killed halfway through.
@@ -277,6 +283,24 @@ def main() -> None:
         def record(entries: list) -> None:
             state.setdefault("clips", []).extend(entries)
             fetch.save_state(state)
+
+        if args.cmd == "url" and remake:
+            lo, _, hi = remake[6:].partition("-")
+            for u in remake_urls:
+                src = forced or fetch.find_source(cfg, u)
+                for p in range(int(lo) - 1, int(hi or lo)):
+                    try:
+                        video = fetch.download(u, work, cfg, p, src)
+                        video["source"] = src
+                        done.append(process_video(video, cfg, next_batch=next_batch, record=record))
+                    except (fetch.NotReady, fetch.Skip) as e:
+                        print(f"[remake] hour {p + 1}: {e}")
+                        break
+                    except Exception as e:
+                        print(f"[remake] hour {p + 1} failed: {e}")
+                    finally:
+                        shutil.rmtree(work, ignore_errors=True)
+                        fetch.save_state(state)
 
         for item in todo:
             url = item["url"]
