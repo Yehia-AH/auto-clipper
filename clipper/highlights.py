@@ -13,7 +13,7 @@ SCHEMA = {
                 "properties": {
                     "start": {"type": "number", "description": "Start time in seconds"},
                     "end": {"type": "number", "description": "End time in seconds"},
-                    "title": {"type": "string", "description": "On-screen hook, 3-8 words, from what's said in the clip"},
+                    "title": {"type": "string", "description": "On-screen hook text, 3-8 words: a teaser that makes people keep watching, not a description"},
                     "caption": {"type": "string", "description": "Post caption for TikTok/Reels/Shorts: punchy hook, not a description. No hashtags"},
                     "x_caption": {"type": "string", "description": "Caption for X/Twitter: one short punchy line, max 120 characters, no hashtags"},
                     "hashtags": {"type": "array", "items": {"type": "string"}},
@@ -102,8 +102,11 @@ Use the timestamps in the transcript exactly: a clip's start must be the start t
 of the line it opens on, and its end must be the end time of the line it closes on. \
 Clips must not overlap. Sort clips by score, best first.
 
-The title is the on-screen hook: 3-8 words built from what is actually said or shown in \
-the clip, says what's coming without spoiling the payoff, never invents events. The \
+The title is the on-screen hook shown on the video: 3-8 words that make people keep \
+watching, in the same teasing style as the captions, never a plain description. Bad: \
+"Clix frees a polar bear". Good: "he did NOT think this through" / "wait for the bear..." \
+/ "nobody expected this 💀". Base it on what really happens in the clip (never invent \
+events) and don't spoil the payoff. The \
 caption is 1-2 short sentences and may end with an easy question to get comments.
 
 Captions must make people NEED to watch, never explain or summarise the clip. Bad (an \
