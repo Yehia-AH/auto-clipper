@@ -81,6 +81,14 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
     if not segments:
         print("[skip] no speech found")
         return None
+    # On a break (asleep on stream, BRB screen, AFK): hardly any talking. Skip it
+    # instead of asking Claude to find clips in silence.
+    words = sum(len(s["text"].split()) for s in segments)
+    minutes = max((video.get("duration") or segments[-1]["end"]) / 60, 1)
+    if words / minutes < cfg.get("min_words_per_minute", 20):
+        print(f"[skip] streamer seems to be away ({words} words in {minutes:.0f} min)")
+        video["away"] = True
+        return None
 
     try:
         add_energy(video["path"], segments)
@@ -91,7 +99,14 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
         if cues:
             seg["cues"] = cues
     spikes = []
-    if video.get("twitch_vod"):
+    if video.get("chat_log"):  # recorded live: we logged chat ourselves
+        from .chat import live_counts
+        counts = live_counts(video["chat_log"], video["start_epoch"],
+                             video["start_epoch"] + (video.get("duration") or segments[-1]["end"]))
+        if counts:
+            spikes = add_chat(segments, counts)
+            print(f"[chat] {len(spikes)} spikes: " + ", ".join(f"{x['t'] // 60}m{x['t'] % 60:02d}s x{x['x']}" for x in spikes))
+    elif video.get("twitch_vod"):
         off = video.get("offset") or 0
         counts = chat_counts(video["twitch_vod"], off, off + (video.get("duration") or segments[-1]["end"]))
         if counts:
@@ -119,6 +134,9 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
         print(f"[select] dropped {len(weak)} weak moment(s) scoring under {cfg['min_score']}")
     is_part = video.get("parts", 1) > 1 or bool(video.get("part"))
     cap = cfg["stream_clips_per_hour"] if is_part else cfg["max_clips_per_video"]
+    if len(clips) > 2 and not cfg.get("find"):
+        from .highlights import rerank
+        clips = rerank(clips, cfg)  # best first, judged against each other
     if src.get("require_game"):
         # campaign only pays for this game: drop IRL / chatting / other-game moments
         from .gamecheck import shows_game

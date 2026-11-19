@@ -84,6 +84,7 @@ def chat_counts(vod_id: str, start: float, end: float, max_seconds: float = 240)
     bucket's start relative to `start`. None if chat replay isn't available.
     "Clip it" nominations per bucket are left in NOMINATIONS."""
     NOMINATIONS.clear()
+    MOODS.clear()
     vod_id = str(vod_id).lstrip("v")
     s = requests.Session()
     s.headers.update({"Client-Id": CLIENT_ID, "Content-Type": "text/plain;charset=UTF-8"})
@@ -104,8 +105,12 @@ def chat_counts(vod_id: str, start: float, end: float, max_seconds: float = 240)
                     b = int((off - start) // BUCKET) * BUCKET
                     counts[b] = counts.get(b, 0) + 1
                     frags = (((e.get("node") or {}).get("message") or {}).get("fragments") or [])
-                    if is_nomination(" ".join(f.get("text") or "" for f in frags)):
+                    msg = " ".join(f.get("text") or "" for f in frags)
+                    if is_nomination(msg):
                         NOMINATIONS[b] = NOMINATIONS.get(b, 0) + 1
+                    mood = message_mood(msg)
+                    if mood:
+                        MOODS.setdefault(b, {})[mood] = MOODS.setdefault(b, {}).get(mood, 0) + 1
             if last_off >= end or not (c.get("pageInfo") or {}).get("hasNextPage") or not edges:
                 break
             cursor = edges[-1].get("cursor")
@@ -137,6 +142,126 @@ def add_chat(segments: list[dict], counts: dict[int, int]) -> list[dict]:
         noms = sum(NOMINATIONS.get(b, 0) for b in range(a, int(s["end"]) + 20, BUCKET))
         if noms:
             s["clip_it"] = noms
+        if s["chat"] >= 5:  # a real reaction: say what kind (laughing, hyped...)
+            moods: dict[str, int] = {}
+            for b in range(a, int(s["end"]) + 20, BUCKET):
+                for m, n in MOODS.get(b, {}).items():
+                    moods[m] = moods.get(m, 0) + n
+            if moods and max(moods.values()) >= 3:
+                s["chat_mood"] = max(moods, key=moods.get)
     spikes = sorted(({"t": b, "rate": n, "x": round(n / median, 1)} for b, n in counts.items()
                      if n >= 2 * median and n >= 5), key=lambda d: -d["rate"])[:15]
     return sorted(spikes, key=lambda d: d["t"])
+
+
+# ---------------------------------------------------------------------------
+# Live chat (read while recording). Twitch lets anyone read a channel's chat
+# anonymously over IRC, so no login or key is needed.
+
+# What chat's reaction says about the moment (idea from stream-clipping tools:
+# a wall of KEKW is a funny moment, POG a big play, monkaS a scare...).
+MOOD_WORDS = {
+    "laughing": {"lul", "lulw", "kekw", "omegalul", "icant", "kek", "lol", "lmao", "lmfao", "xd",
+                 "pepelaugh", "4head", "haha", "hahaha", "😂", "🤣", "💀"},
+    "hyped": {"pog", "poggers", "pogu", "pogchamp", "letsgo", "letsgooo", "insane", "holy", "clutch",
+              "w", "ww", "gigachad", "omg", "wow", "goat", "🔥", "😱", "🤯", "🐐"},
+    "shocked": {"huh", "what", "wtf", "?!", "!?", "😮", "😳", "nah"},
+    "scared": {"monkas", "monkaw", "aaaa", "jumpscare", "😨", "😰"},
+    "fail": {"f", "l", "rip", "sadge", "noooo", "threw", "😭", "💔"},
+}
+MOODS: dict[int, dict[str, int]] = {}
+
+
+def message_mood(text: str) -> str | None:
+    words = re.findall(r"[\w']+|[?!]{2,}|[^\w\s?!]", text.casefold())
+    best, hits = None, 0
+    for mood, vocab in MOOD_WORDS.items():
+        n = sum(1 for w in words if w in vocab)
+        if n > hits:
+            best, hits = mood, n
+    return best
+
+
+class LiveChat:
+    """Logs a channel's chat to a file as "<unix time>\\t<message>" lines, in a
+    background thread, reconnecting if the connection drops."""
+
+    def __init__(self, channel: str, path):
+        import threading
+        self.channel, self.path = channel.lower().lstrip("#"), path
+        self.stop_event = threading.Event()
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.count = 0
+
+    def start(self):
+        self.thread.start()
+        return self
+
+    def stop(self):
+        self.stop_event.set()
+
+    def _run(self):
+        import socket
+        import ssl
+        backoff = 5
+        while not self.stop_event.is_set():
+            try:
+                raw = socket.create_connection(("irc.chat.twitch.tv", 6697), timeout=30)
+                sock = ssl.create_default_context().wrap_socket(raw, server_hostname="irc.chat.twitch.tv")
+                sock.settimeout(360)
+                nick = f"justinfan{int(time.time()) % 100000}"
+                sock.sendall(f"NICK {nick}\r\nJOIN #{self.channel}\r\n".encode())
+                print(f"[chat] reading #{self.channel} live chat")
+                backoff, buf = 5, b""
+                with open(self.path, "a", encoding="utf-8") as out:
+                    while not self.stop_event.is_set():
+                        data = sock.recv(65536)
+                        if not data:
+                            raise ConnectionError("chat connection closed")
+                        buf += data
+                        *lines, buf = buf.split(b"\r\n")
+                        for line in lines:
+                            text = line.decode("utf-8", "replace")
+                            if text.startswith("PING"):
+                                sock.sendall(("PONG" + text[4:] + "\r\n").encode())
+                            elif " PRIVMSG #" in text:
+                                msg = text.split(" :", 1)[1] if " :" in text else ""
+                                out.write(f"{time.time():.1f}\t{msg.replace(chr(9), ' ')}\n")
+                                self.count += 1
+                        out.flush()
+            except Exception as e:
+                if self.stop_event.is_set():
+                    break
+                print(f"[chat] live chat dropped ({e}), reconnecting in {backoff}s")
+                time.sleep(backoff)
+                backoff = min(backoff * 2, 120)
+
+
+def live_counts(path, start_epoch: float, end_epoch: float) -> dict[int, int] | None:
+    """Like chat_counts, but from a live chat log: messages per 10 s bucket of the
+    video that starts at start_epoch. Fills NOMINATIONS and MOODS too."""
+    NOMINATIONS.clear()
+    MOODS.clear()
+    counts: dict[int, int] = {}
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                t, _, msg = line.rstrip("\n").partition("\t")
+                try:
+                    t = float(t)
+                except ValueError:
+                    continue
+                if not (start_epoch <= t < end_epoch):
+                    continue
+                b = int((t - start_epoch) // BUCKET) * BUCKET
+                counts[b] = counts.get(b, 0) + 1
+                if is_nomination(msg):
+                    NOMINATIONS[b] = NOMINATIONS.get(b, 0) + 1
+                mood = message_mood(msg)
+                if mood:
+                    MOODS.setdefault(b, {})[mood] = MOODS.setdefault(b, {}).get(mood, 0) + 1
+    except FileNotFoundError:
+        return None
+    total = sum(counts.values())
+    print(f"[chat] {total} live chat messages in this part")
+    return counts if total >= 30 else None

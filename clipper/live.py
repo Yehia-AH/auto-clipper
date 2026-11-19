@@ -15,6 +15,7 @@ How it works:
   stream counts as over only after it's been offline for a few minutes in a row.
 """
 import datetime as dt
+import json
 import os
 import re
 import subprocess
@@ -210,6 +211,17 @@ def start_next_run(start_at: float) -> None:
     print(f"[live] started the next recording run: {r.returncode == 0} {r.stderr.strip()[:200]}")
 
 
+def publish_release(out_dir: Path, tag: str) -> None:
+    """Put one hour's clips on GitHub right away (a backup, and lets Claude review
+    each batch while the stream is still going)."""
+    script = ROOT / "scripts" / "publish_releases.sh"
+    if not (os.environ.get("GITHUB_ACTIONS") and script.exists()):
+        return
+    lst = ROOT / ".work" / f"release_{tag}.json"
+    lst.write_text(json.dumps([str(out_dir)]))
+    subprocess.run(["bash", str(script), str(lst), tag], cwd=ROOT)
+
+
 def sync_state(state: dict) -> None:
     """Merge our progress with GitHub's copy and push it, then reload the merged
     copy (other runs number batches too, so stay in sync between hours)."""
@@ -258,6 +270,10 @@ def record_and_clip(cfg: dict, start_at: float | None, process_video, next_batch
     rec = Recorder(src, info, workdir, cfg.get("max_height", 1080), stop_at, stream_start,
                    on_handoff=start_next_run)
     rec.start()
+    from .chat import LiveChat
+    chat_log = workdir / "chat.tsv"
+    slug = re.search(r"twitch\.tv/([A-Za-z0-9_]+)", src["url"])
+    chat = LiveChat(slug.group(1), chat_log).start() if slug else None
 
     done, handled = [], set()
     min_len = cfg["min_source_minutes"] * 60
@@ -272,6 +288,8 @@ def record_and_clip(cfg: dict, start_at: float | None, process_video, next_batch
             continue
         h = todo[0]
         handled.add(h)
+        starts = {hh: min(t for t, p in recorded_files(workdir)
+                          if hour_of(t, stream_start) == hh) for hh in hours}
         mp4 = workdir / f"hour_{h}.mp4"
         try:
             length = join_hour(hours[h], mp4)
@@ -283,9 +301,15 @@ def record_and_clip(cfg: dict, start_at: float | None, process_video, next_batch
             print(f"[live] hour {h}: {length / 60:.0f} min recorded, clipping it")
             video = {"id": f"live{sid}", "title": f"{info.get('title') or name} (part {h} live)",
                      "path": mp4, "duration": length, "url": src["url"], "part": h - 1,
-                     "parts": h + 1, "offset": 0, "twitch_vod": None, "source": src}
+                     "parts": h + 1, "offset": 0, "twitch_vod": None, "source": src,
+                     "chat_log": chat_log, "start_epoch": starts[h]}
             out = process_video(video, cfg, next_batch=next_batch, record=record)
             done.append(out)
+            if out:
+                publish_release(out, f"h{h}")
+            elif video.get("away") and deliver.telegram_enabled():
+                deliver.send_message(f"💤 {name} was on a break in hour {h} (hardly talking), "
+                                     "skipped it. Still recording.")
             sessions = state.setdefault("live_sessions", {})
             sessions.setdefault(sid, {})["hours_clipped"] = sorted(
                 set(sessions[sid].get("hours_clipped", [])) | {h})
@@ -297,6 +321,8 @@ def record_and_clip(cfg: dict, start_at: float | None, process_video, next_batch
             mp4.unlink(missing_ok=True)
             sync_state(state)
 
+    if chat:
+        chat.stop()
     if rec.ended:
         print(f"[live] {name}: stream is over")
         if deliver.telegram_enabled():

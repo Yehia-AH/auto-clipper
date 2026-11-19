@@ -13,7 +13,7 @@ SCHEMA = {
                 "properties": {
                     "start": {"type": "number", "description": "Start time in seconds"},
                     "end": {"type": "number", "description": "End time in seconds"},
-                    "title": {"type": "string", "description": "Short on-video hook title, max 8 words"},
+                    "title": {"type": "string", "description": "On-screen hook, 3-8 words, from what's said in the clip"},
                     "caption": {"type": "string", "description": "Post caption, 1-2 sentences, no hashtags"},
                     "hashtags": {"type": "array", "items": {"type": "string"}},
                     "score": {"type": "integer", "description": "Viral potential 1-10"},
@@ -29,33 +29,46 @@ SCHEMA = {
 }
 
 SYSTEM = """You are an expert short-form video editor who picks the moments from \
-long videos that will perform best as standalone TikTok / YouTube Shorts / Reels clips.
+long streams that will go viral as standalone TikTok / YouTube Shorts / Reels clips.
 
-A great clip:
-- Opens on a hook: the first sentence grabs attention on its own (a bold claim, \
-question, surprising fact, or the start of a story). Never start mid-sentence or \
-on filler like "so", "yeah", "um", "and".
-- Is self-contained: makes sense to someone who has not seen the rest of the video.
-- Has a payoff: ends on a punchline, conclusion, or strong line. Never cut off \
-mid-thought.
-- Has no dead air or long tangents.
+Harsh rubric: a clip must pass ALL four, or it is not a clip.
+1. Works with zero context. A stranger scrolling understands it. No "what happened 10 \
+minutes ago", inside jokes, or game state they can't see.
+2. Strong first 1-2 seconds. Start on the line or the reaction itself. Never start on \
+filler ("so", "yeah", "um", "okay so", "anyway", "and").
+3. A payoff: a big reaction (freakout, disbelief, scream, laughing fit), a fail, a \
+discovery ("wait, is that...?"), a hot take, a funny line. End right after it (the laugh \
+or 1-2 s of reaction), never on the next topic and never mid-thought.
+4. Let the moment set the length: a punchy one-liner can be 15 s, a story that builds to \
+a payoff 45-60 s. 20-40 s is the sweet spot.
+
+Score 1-10 for viral potential, and be critical: most moments are 5-6. 9-10 = viral on \
+its own; 7-8 = strong, worth posting; 5-6 = fine; below 5 = not a clip. Minus 2 if it \
+needs context, minus 2 for a slow first second, minus 3 if nothing happens at the end. \
+Boost moments that name or react to another streamer, creator or celebrity, or drama \
+and hot topics: they ride existing attention. Prefer variety: different kinds of moments, \
+spread across the video.
+
+Also skip: words that aren't the streamer's (game characters, cutscenes, a video he is \
+watching) with no reaction from him; long stretches of chatting to chat; anything about \
+politics, tragedy, slurs, or sexual comments about real people.
 
 Each transcript line may show "(energy N)": how loud the audio gets on that line \
 compared with the rest of the video, 0 (quietest) to 10 (loudest). For gaming and \
-stream content, energy spikes (yelling, laughing, hype, rage) are the strongest sign \
-of a clip-worthy moment: a great stream clip almost always has an energy spike in the \
-first few seconds or at the payoff. Do not pick calm, low-energy talk unless the line \
-itself is genuinely funny or shocking without any visuals. You only have the \
-transcript, so prefer moments where the speech itself makes clear something exciting \
-just happened.
+stream content, energy spikes (yelling, laughing, hype, rage) are a strong sign of a \
+clip-worthy moment: a great stream clip almost always has an energy spike in the first \
+few seconds or at the payoff. A mild-sounding line right at a big spike is often a great \
+clip. You only have the transcript, so prefer moments where the speech itself makes \
+clear something exciting just happened.
 
 Lines may also show "(chat N)": how hard Twitch chat reacted right after that line, \
-0-10 (3 = normal, 6 = double the usual rate, 9-10 = chat exploded). Chat reacts 5-20 \
-seconds AFTER the moment happens, so a chat spike is the strongest signal of all that \
-something clip-worthy just happened. When there is a big chat spike, build the clip \
-around it: start about 15-20 seconds BEFORE the spike so the viewer gets the setup, \
-and end just after the reaction / punchline. A moment with both high energy and high \
-chat is almost always the best clip available.
+0-10 (3 = normal, 6 = double the usual rate, 9-10 = chat exploded), and sometimes \
+"(chat: laughing / hyped / shocked / scared / fail)": what chat's messages said. Chat \
+reacts 5-20 seconds AFTER the moment, so a chat spike is the strongest signal of all \
+that something clip-worthy just happened. When there is a big chat spike, build the clip \
+around it: start about 15-20 seconds BEFORE the spike so the viewer gets the setup, and \
+end just after the reaction / punchline. A moment with both high energy and high chat is \
+almost always the best clip available.
 
 Lines may show '(Nx "clip it" in chat)': viewers literally asking for that moment to \
 be clipped. Treat that as a direct vote for the moment.
@@ -67,7 +80,11 @@ usually comes right before the line, so start the clip a little earlier.
 
 Use the timestamps in the transcript exactly: a clip's start must be the start time \
 of the line it opens on, and its end must be the end time of the line it closes on. \
-Clips must not overlap. Sort clips by score, best first."""
+Clips must not overlap. Sort clips by score, best first.
+
+The title is the on-screen hook: 3-8 words built from what is actually said or shown in \
+the clip, says what's coming without spoiling the payoff, never invents events. The \
+caption is 1-2 short sentences and may end with an easy question to get comments."""
 
 
 def _format_transcript(segments: list[dict]) -> str:
@@ -75,6 +92,7 @@ def _format_transcript(segments: list[dict]) -> str:
         f"[{s['start']:.2f}-{s['end']:.2f}]"
         + (f" (energy {s['energy']})" if "energy" in s else "")
         + (f" (chat {s['chat']})" if "chat" in s else "")
+        + (f" (chat: {s['chat_mood']})" if s.get("chat_mood") else "")
         + (f" ({s['clip_it']}x \"clip it\" in chat)" if s.get("clip_it") else "")
         + (f" (event: {', '.join(s['cues'])})" if s.get("cues") else "")
         + f" {s['text']}" for s in segments)
@@ -191,3 +209,51 @@ def find_moment(segments: list[dict], title: str, description: str, cfg: dict) -
             "before it and the reaction after it. If it is not in this transcript, return an "
             "empty list of clips. Ignore the usual audience notes; only this moment matters.\n\n")
     return _ask(segments, title, 1, note, {**cfg, "max_clip_seconds": max(cfg["max_clip_seconds"], 60)})
+
+
+ORDER_SCHEMA = {
+    "type": "object",
+    "properties": {"order": {"type": "array", "items": {"type": "integer"}}},
+    "required": ["order"],
+    "additionalProperties": False,
+}
+
+
+def rerank(clips: list[dict], cfg: dict) -> list[dict]:
+    """Order candidates against each other (relative judgment is more reliable than
+    each clip's own score, which tends to cluster at 7-9). Keeps all clips."""
+    if len(clips) < 3:
+        return clips
+    lines = []
+    for i, c in enumerate(clips):
+        words = " ".join(w["word"].strip() for w in c.get("words", []))[:900]
+        lines.append(f"[{i}] {c['end'] - c['start']:.0f}s, score {c['score']}, "
+                     f"title: {c['title']}\n    spoken: {words}")
+    prompt = (f"Below are {len(clips)} candidate clips from one stream. Order ALL of them from "
+              "MOST likely to go viral as a TikTok/Short to LEAST. Judge them against each other: "
+              "hook strength in the first 2 seconds, emotional intensity, payoff, quotability, "
+              "and whether it works with zero context. List every index exactly once.\n\n"
+              + "\n".join(lines))
+    try:
+        client = anthropic.Anthropic()
+        request = dict(model=cfg["model"], max_tokens=2000,
+                       output_config={"effort": "low",
+                                      "format": {"type": "json_schema", "schema": ORDER_SCHEMA}},
+                       messages=[{"role": "user", "content": prompt}])
+        if cfg["model"].startswith("claude-haiku"):
+            response = client.messages.create(**request)
+        else:
+            response = client.beta.messages.create(
+                **request, betas=["server-side-fallback-2026-07-01"], fallbacks="default")
+        text = next(b.text for b in response.content if b.type == "text")
+        order = [i for i in json.loads(text)["order"] if isinstance(i, int) and 0 <= i < len(clips)]
+        seen, ranked = set(), []
+        for i in order + list(range(len(clips))):
+            if i not in seen:
+                seen.add(i)
+                ranked.append(clips[i])
+        print("[rerank] " + " > ".join(c["title"][:30] for c in ranked))
+        return ranked
+    except Exception as e:  # ranking is a bonus; keep the score order if it fails
+        print(f"[rerank] skipped: {e}")
+        return clips

@@ -12,6 +12,12 @@ SAMPLE_RATE = 16000
 def load_audio(video: Path) -> np.ndarray:
     """Decode the audio track to 16 kHz mono float32 with ffmpeg.
     (faster-whisper's own decoder breaks with newer PyAV releases.)"""
+    has_audio = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index",
+         "-of", "csv=p=0", str(video)], capture_output=True, text=True).stdout.strip()
+    if not has_audio:  # muted / silent recording: nothing to transcribe
+        print("[transcribe] no audio track in this part")
+        return np.zeros(0, np.float32)
     raw = subprocess.run(
         ["ffmpeg", "-nostdin", "-loglevel", "error", "-i", str(video), "-vn",
          "-ac", "1", "-ar", str(SAMPLE_RATE), "-f", "s16le", "-"],
