@@ -258,6 +258,27 @@
       "score": 7,
       "streamer": "Clix",
       "title": "\"I swear it's the mission, chat\""
+    },
+    {
+      "at": 1795129228,
+      "id": "17.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Begging Him Not To Jump"
+    },
+    {
+      "at": 1795129228,
+      "id": "17.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "They Told Me About The Tracker"
+    },
+    {
+      "at": 1795129228,
+      "id": "17.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "I Literally Had This Race"
     }
   ],
   "failures": {
@@ -272,7 +293,8 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ],
       "seen": 1795121308,
       "source": "https://www.twitch.tv/clix",
