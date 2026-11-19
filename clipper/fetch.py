@@ -329,10 +329,10 @@ def cut_hls(info: dict, height: int, start: float, length: float, out: Path) -> 
     playlist, trim = sub_playlist(text, url, start, length)
     local = out.with_suffix(".m3u8")
     local.write_text(playlist)
+    # (no -headers: newer ffmpeg rejects it for a local playlist file, and the
+    # video segments themselves don't need any)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-nostdin",
            "-protocol_whitelist", "file,http,https,tcp,tls,crypto"]
-    if headers:
-        cmd += ["-headers", headers]
     cmd += ["-i", str(local), "-ss", f"{trim:.2f}", "-t", f"{length:.0f}",
             "-map", "0:v:0", "-map", "0:a:0?", "-c", "copy", "-bsf:a", "aac_adtstoasc",
             "-movflags", "+faststart", str(out)]
