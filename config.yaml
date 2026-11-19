@@ -21,6 +21,7 @@
 #   layout:   force a layout for this streamer (split / crop / blur / auto)
 #   webcam:   [x, y, w, h] fractions of the screen where the webcam overlay sits
 #   single_stream: true = a one-off stream (marathon): stop watching once it's fully clipped
+#   live:     true = record the stream while it's live and clip every hour (live.yml)
 #   require_game: only keep clips where this game is on screen (checked from 3 frames)
 #   auto:     false = don't watch this channel; only clip links you run by hand
 sources:
@@ -28,14 +29,14 @@ sources:
   # Rules: https://reachclipping.com/ClixGTA
   - url: https://www.twitch.tv/clix
     name: Clix
-    since: 2026-11-18      # only footage from the GTA marathon (started Nov 18)
+    since: 2026-11-18      # only footage from Nov 18 on (the GTA marathon and after)
     layout: split          # webcam on top, gameplay below
     webcam: [0, 0, 0.248, 0.247]   # his webcam box: left 25% x top 25% of the screen
-    single_stream: true    # 24h marathon: stop watching Clix once it's fully clipped
+    live: true             # record his streams while they're live, clip every hour
     require_game: GTA 6    # gameplay only: Claude checks 3 frames per clip, drops IRL / chatting
     hashtags: ["#Clix", "#GTA6"]
     notes: >
-      Only clip his GTA 6 marathon. Clix must be the main subject of every clip:
+      Only clip his GTA 6 gameplay. Clix must be the main subject of every clip:
       pick moments where Clix himself is talking, reacting or doing something,
       not moments that are mostly about other people.
     reminder: >

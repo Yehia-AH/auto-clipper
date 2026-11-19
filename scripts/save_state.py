@@ -38,6 +38,13 @@ merged["batch_counter"] = max(remote.get("batch_counter", 0), local.get("batch_c
 merged["partial_urls"] = {vid: u for vid, u in
                           {**remote.get("partial_urls", {}), **local.get("partial_urls", {})}.items()
                           if vid in merged["partial"]}
+sessions = {}
+for sid in set(remote.get("live_sessions", {})) | set(local.get("live_sessions", {})):
+    a, b = remote.get("live_sessions", {}).get(sid, {}), local.get("live_sessions", {}).get(sid, {})
+    sessions[sid] = {**a, **b, "hours_clipped": sorted(set(a.get("hours_clipped", []))
+                                                       | set(b.get("hours_clipped", [])))}
+# keep the last 50 recorded streams (used to skip their VODs later)
+merged["live_sessions"] = dict(sorted(sessions.items(), key=lambda kv: kv[1].get("start", 0))[-50:])
 for vid in list(merged["failures"]):
     if vid in merged["processed"]:
         merged["failures"].pop(vid)

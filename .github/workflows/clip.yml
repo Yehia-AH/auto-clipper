@@ -106,42 +106,11 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          i=0
-          [ -f .last_run.json ] || exit 0
-          for dir in $(python -c "import json;print(' '.join(json.load(open('.last_run.json'))))"); do
-            i=$((i+1))
-            ls "$dir"/*.mp4 >/dev/null 2>&1 || continue
-            title=$(python -c "import json,sys;print(json.load(open(sys.argv[1]))['title'][:100])" "$dir/manifest.json")
-            {
-              echo "$title"
-              echo
-              for t in "$dir"/*.txt; do echo "### $(basename "${t%.txt}")"; echo; cat "$t"; echo; done
-            } > notes.md
-            gh release create "clips-${GITHUB_RUN_ID}-${i}" "$dir"/*.mp4 "$dir"/*.txt \
-              --title "📦 $title" --notes-file notes.md
-          done
+        run: bash scripts/publish_releases.sh
 
       - name: Remember processed videos
         if: always()
-        run: |
-          git config user.name "auto-clipper"
-          git config user.email "auto-clipper@users.noreply.github.com"
-          [ -f state/processed.json ] || exit 0
-          cp state/processed.json /tmp/mine.json
-          for attempt in 1 2 3 4 5; do
-            git fetch -q origin main
-            git reset -q --hard origin/main
-            git show origin/main:state/processed.json > /tmp/remote.json 2>/dev/null || echo '{}' > /tmp/remote.json
-            cp /tmp/mine.json state/processed.json
-            python scripts/save_state.py /tmp/remote.json state/processed.json
-            git add state/processed.json
-            git diff --cached --quiet && exit 0
-            git commit -q -m "Update processed videos"
-            git push -q origin HEAD:main && exit 0
-            sleep $((attempt * 5))
-          done
-          echo "Could not save progress after 5 tries" && exit 1
+        run: bash scripts/push_state.sh
 
       - name: Keep going if a stream still has hours to clip
         if: success()

@@ -1,0 +1,95 @@
+name: Live Recorder
+run-name: >-
+  ${{ inputs.start_at != '' && '🔴 Live: keep recording'
+  || (github.event_name == 'schedule' && '🔴 Live: is anyone live?' || '🔴 Live: check now') }}
+
+# Records watched streamers (live: true in config.yaml) while they're live and
+# clips every finished hour. A check runs every 10 minutes; once someone is live, one
+# run records ~3-4 h and then starts the next run right at the hour boundary.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      start_at:
+        description: "Used by the recorder itself to hand off between runs (leave empty)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  actions: write   # to start the next recording run
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Is anyone live (and not already being recorded)?
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          START_AT: ${{ inputs.start_at }}
+        run: |
+          if [ -z "$START_AT" ]; then
+            # an older run still going = it's already recording: don't record twice
+            busy=$(gh run list -R "$GITHUB_REPOSITORY" --workflow live.yml -L 30 \
+              --json databaseId,status \
+              --jq "[.[] | select(.status != \"completed\" and .databaseId < $GITHUB_RUN_ID)] | length")
+            if [ "$busy" -gt 0 ]; then
+              echo "Already recording in another run."; echo "go=no" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          fi
+          pip install -q yt-dlp pyyaml
+          python -m clipper.live --check | tee /tmp/live.txt
+          if grep -q '^LIVE=.\+' /tmp/live.txt; then echo "go=yes" >> "$GITHUB_OUTPUT"; else echo "go=no" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Install ffmpeg
+        if: steps.check.outputs.go == 'yes'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+
+      - name: Cache Whisper model
+        if: steps.check.outputs.go == 'yes'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-${{ hashFiles('config.yaml') }}
+          restore-keys: whisper-
+
+      - name: Install Python packages
+        if: steps.check.outputs.go == 'yes'
+        run: pip install -r requirements.txt
+
+      - name: Record and clip
+        if: steps.check.outputs.go == 'yes'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YTDLP_COOKIES: ${{ secrets.YTDLP_COOKIES }}
+          GH_TOKEN: ${{ github.token }}
+          PYTHONUNBUFFERED: "1"
+          START_AT: ${{ inputs.start_at }}
+        run: |
+          if [ -n "$START_AT" ]; then
+            python -m clipper live --start-at "$START_AT"
+          else
+            python -m clipper live
+          fi
+
+      - name: Publish clips as GitHub releases
+        if: always() && steps.check.outputs.go == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish_releases.sh
+
+      - name: Remember progress
+        if: always() && steps.check.outputs.go == 'yes'
+        run: bash scripts/push_state.sh

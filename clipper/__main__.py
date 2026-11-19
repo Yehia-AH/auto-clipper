@@ -3,6 +3,7 @@
   python -m clipper run              # clip new uploads from the sources in config.yaml
   python -m clipper url <URL> [...]  # clip specific videos
   python -m clipper file <path>      # clip a local video file
+  python -m clipper live             # record a watched streamer while live, clip every hour
 """
 import argparse
 import datetime as dt
@@ -227,6 +228,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(prog="clipper")
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("run")
+    lv = sub.add_parser("live")
+    lv.add_argument("--start-at", type=float, default=None,
+                    help="continue a recording from this UTC timestamp (hand-off between runs)")
     u = sub.add_parser("url")
     u.add_argument("urls", nargs="+")
     f = sub.add_parser("file")
@@ -251,7 +255,9 @@ def main() -> None:
         state.setdefault("failures", {})
         state.setdefault("partial", {})
         state.setdefault("partial_urls", {})
-        if args.cmd == "run":
+        if args.cmd == "live":
+            todo = []
+        elif args.cmd == "run":
             if not cfg["sources"] and not state["partial"]:
                 print("No sources in config.yaml yet. Add a channel or playlist URL.")
                 return
@@ -295,6 +301,10 @@ def main() -> None:
         def record(entries: list) -> None:
             state.setdefault("clips", []).extend(entries)
             fetch.save_state(state)
+
+        if args.cmd == "live":
+            from .live import record_and_clip
+            done += record_and_clip(cfg, args.start_at, process_video, next_batch, record, state)
 
         if args.cmd == "url" and remake:
             lo, _, hi = remake[6:].partition("-")

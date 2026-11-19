@@ -115,6 +115,10 @@ def list_new_videos(cfg: dict, state: dict) -> list[dict]:
                 if e.get("live_status") in ("is_upcoming", "post_live") or (
                         e.get("live_status") == "is_live" and "twitch.tv" not in src):
                     continue  # wait until the stream is over and the VOD is ready
+                if "twitch.tv" in src and not re.fullmatch(r"v?\d+", str(vid)):
+                    continue  # the channel's live broadcast itself, not a saved VOD
+                if "twitch.tv" in src and settings.get("live") and e.get("live_status") == "is_live":
+                    continue  # the live recorder (live.yml) records this one
                 if before_start(e, settings):
                     continue  # older than the campaign's start date
                 if any(f["id"] == vid for f in found):
@@ -165,6 +169,8 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0,
     live = info.get("is_live") or info.get("live_status") in ("is_live", "is_upcoming", "post_live")
     if live and not is_twitch:
         raise NotReady("stream is still live or the VOD is still processing")
+    if recorded_live(info, url):
+        raise Skip("already recorded and clipped while it was live")
     if src_settings and before_start(info, src_settings):
         raise Skip(f"recorded before the campaign start ({src_settings.get('since')})")
     dur = info.get("duration") or 0
@@ -244,23 +250,42 @@ def before_start(info: dict, settings: dict) -> bool:
     return day < since
 
 
-def cut_hls(info: dict, height: int, start: float, length: float, out: Path) -> None:
-    """Copy [start, start+length) out of an HLS (m3u8) format with ffmpeg."""
+def hls_format(info: dict, height: int) -> tuple[str, str, int]:
+    """Best HLS (m3u8) video format up to `height`: (url, ffmpeg headers, height)."""
     fmts = [f for f in info.get("formats") or []
             if "m3u8" in (f.get("protocol") or "") and f.get("vcodec") != "none"]
     if not fmts:
-        raise RuntimeError("no HLS format found for the live recording")
+        raise RuntimeError("no HLS format found for the stream")
     ok = [f for f in fmts if (f.get("height") or 0) <= height] or fmts
     fmt = max(ok, key=lambda f: (f.get("height") or 0, f.get("tbr") or 0))
     headers = "".join(f"{k}: {v}\r\n" for k, v in (fmt.get("http_headers") or {}).items())
+    return fmt["url"], headers, fmt.get("height") or 0
+
+
+def recorded_live(info: dict, url: str) -> bool:
+    """True if this Twitch VOD is a stream the live recorder already recorded
+    (same channel, started within 30 min of a recorded session)."""
+    ts = info.get("timestamp") or info.get("release_timestamp")
+    if not ts or "twitch.tv" not in url:
+        return False
+    names = {str(info.get(k) or "").lower() for k in ("uploader_id", "channel", "uploader")} - {""}
+    for sess in load_state().get("live_sessions", {}).values():
+        if _channel_slug(sess.get("source", "")) in names and abs(sess.get("start", 0) - ts) < 30 * 60:
+            return True
+    return False
+
+
+def cut_hls(info: dict, height: int, start: float, length: float, out: Path) -> None:
+    """Copy [start, start+length) out of an HLS (m3u8) format with ffmpeg."""
+    url, headers, h = hls_format(info, height)
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-nostdin"]
     if headers:
         cmd += ["-headers", headers]
-    cmd += ["-ss", f"{start:.0f}", "-i", fmt["url"], "-t", f"{length:.0f}",
+    cmd += ["-ss", f"{start:.0f}", "-i", url, "-t", f"{length:.0f}",
             "-map", "0:v:0", "-map", "0:a:0?", "-c", "copy", "-bsf:a", "aac_adtstoasc",
             "-movflags", "+faststart", str(out)]
     print(f"[fetch] cutting {start / 3600:.1f}h-{(start + length) / 3600:.1f}h "
-          f"from the live recording ({fmt.get('height')}p)")
+          f"from the live recording ({h}p)")
     try:
         subprocess.run(cmd, check=True, timeout=DOWNLOAD_LIMIT)
     except subprocess.TimeoutExpired:
