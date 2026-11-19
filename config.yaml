@@ -49,11 +49,16 @@ sources:
   - url: https://www.twitch.tv/sypherpk
     name: SypherPK
     layout: split
-    hashtags: ["#SypherPK"]
+    hashtags: ["#SypherPK", "#fortnitecreative", "#uefn"]   # required by the campaign
     auto: false
+    notes: >
+      Campaign rules: Sypher, Replays and Maddynf playing together must be the main
+      focus of every clip. Never show Sypher, Replays, Maddynf, Fortnite, Epic Games
+      or UEFN in a negative light (no mocking players or the game), and no negative
+      or false narratives. English only.
     reminder: >
-      SypherPK campaign: submit each clip link on Content Rewards. Check the
-      campaign rules on Content Rewards before posting.
+      SypherPK campaign: submit each clip link on Content Rewards. Captions must keep
+      #fortnitecreative #uefn and a creator name. Payout starts at 10,000 views.
 
 # How many of the newest uploads to look at per source each run.
 lookback_videos: 3
