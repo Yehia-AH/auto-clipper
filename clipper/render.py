@@ -30,14 +30,15 @@ def _faces(frame) -> list:
     if _CASCADE is None:
         _CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    m = gray.shape[1] // 40
+    m = max(14, gray.shape[1] // 80)  # small enough for tiny corner webcams
     return _CASCADE.detectMultiScale(gray, scaleFactor=1.15, minNeighbors=5, minSize=(m, m))
 
 
-def track_speaker(path: Path, start: float, end: float, w: int, step: float = 0.5):
+def track_speaker(path: Path, start: float, end: float, w: int, step: float = 0.5,
+                  min_hits: float = 0.4):
     """Sample frames and return [(t_rel, (cx, cy, fw) | None)] or None if faces are rare."""
     cap = cv2.VideoCapture(str(path))
-    scale = 960 / w if w > 960 else 1.0
+    scale = 1280 / w if w > 1280 else 1.0
     samples = []
     t = start
     while t < end:
@@ -56,7 +57,7 @@ def track_speaker(path: Path, start: float, end: float, w: int, step: float = 0.
         t += step
     cap.release()
     hits = sum(1 for _, x in samples if x is not None)
-    if not samples or hits / len(samples) < 0.4:
+    if not samples or hits / len(samples) < min_hits:
         return None
     return samples
 
@@ -221,9 +222,10 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
     if cw >= w:  # source already vertical-ish
         layout = "blur"
     elif layout in ("auto", "split"):
-        samples = track_speaker(src, start, end, w)
+        # a forced split only needs to find the (static) webcam a few times
+        samples = track_speaker(src, start, end, w, min_hits=0.15 if layout == "split" else 0.4)
         if not samples:
-            layout = "blur"
+            layout = "zoom"  # no webcam: fill the screen with gameplay instead
         elif layout == "split":
             boxes = [b for _, b in samples if b]
             box = tuple(float(np.median([b[i] for b in boxes])) for i in range(3))
@@ -240,6 +242,14 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
     elif layout == "crop":
         x = _crop_x_expr(plan)
         graph = f"[0:v]crop={cw}:{h}:{x}:0,scale={OUT_W}:{OUT_H},setsar=1[base]"
+    elif layout == "zoom":
+        # gameplay zoomed to a big 4:5 panel (1080x1350) on a blurred backdrop
+        zw = min(w, int(h * 4 / 5)) // 2 * 2
+        graph = (f"[0:v]split[a][b];"
+                 f"[a]scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,"
+                 f"crop={OUT_W}:{OUT_H},boxblur=25:4,eq=brightness=-0.08[bg];"
+                 f"[b]crop={zw}:{h}:{(w - zw) // 2 // 2 * 2}:0,scale={OUT_W}:1350,setsar=1[fg];"
+                 f"[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1[base]")
     else:
         graph = (f"[0:v]split[a][b];"
                  f"[a]scale={OUT_W}:{OUT_H}:force_original_aspect_ratio=increase,"
