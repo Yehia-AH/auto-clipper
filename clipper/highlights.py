@@ -105,8 +105,9 @@ Clips must not overlap. Sort clips by score, best first.
 The title is the on-screen hook shown on the video: 3-8 words that make people keep \
 watching, in the same teasing style as the captions, never a plain description. Bad: \
 "Clix frees a polar bear". Good: "he did NOT think this through" / "wait for the bear..." \
-/ "nobody expected this 💀". Base it on what really happens in the clip (never invent \
-events) and don't spoil the payoff. The \
+/ "nobody expected this". No emoji in the title (the video font can't draw them). \
+Base it on what really happens in the clip (never invent events) and don't spoil the \
+payoff. The \
 caption is 1-2 short sentences and may end with an easy question to get comments.
 
 Captions must make people NEED to watch, never explain or summarise the clip. Bad (an \

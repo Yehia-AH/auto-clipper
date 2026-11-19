@@ -209,6 +209,9 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
     dur = clip_end - clip_start
     if title:
         safe = title.replace("{", "(").replace("}", ")")
+        # the font has no emoji: drop them instead of drawing empty boxes
+        safe = re.sub(r"[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F]", "", safe).strip()
+        safe = censor(safe)
         lines.append(f"Dialogue: 1,{_ts(0)},{_ts(dur)},Title,,0,0,0,,{safe}")
     if overlay:  # e.g. the streamer's handle, when a campaign requires it on screen
         safe = overlay.replace("{", "(").replace("}", ")")
