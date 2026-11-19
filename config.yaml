@@ -90,7 +90,7 @@ max_height: 1080                # download resolution
 # Streams are clipped once the VOD is up. Live Twitch marathons are clipped while they run,
 # one finished part at a time.
 long_video_minutes: 90
-stream_clips_per_hour: 3     # at most this many clips per hour of stream
+stream_clips_per_hour: 4     # at most this many clips per hour of stream
 max_clips_per_video: 15
 min_score: 7                 # only send moments Claude rates 7/10 or higher (strict rubric: 7 = strong)
 min_words_per_minute: 20     # less talking than this in an hour = on a break (asleep, BRB): skip it
