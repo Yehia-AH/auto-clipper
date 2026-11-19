@@ -1,5 +1,5 @@
 {
-  "batch_counter": 9,
+  "batch_counter": 10,
   "clips": [
     {
       "at": 1795050101,
@@ -139,6 +139,13 @@
       "score": 8,
       "streamer": "Clix",
       "title": "Clix Finds Out Donnie Is Dead"
+    },
+    {
+      "at": 1795090847,
+      "id": "10.1",
+      "score": 6,
+      "streamer": "Clix",
+      "title": "Clix Fixing Leaks When She Walks In"
     }
   ],
   "failures": {},
