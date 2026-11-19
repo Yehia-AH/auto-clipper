@@ -29,21 +29,33 @@ def slugify(s: str, n: int = 50) -> str:
 
 def post_text(clip: dict) -> str:
     tags = " ".join("#" + t.lstrip("#").replace(" ", "") for t in clip["hashtags"])
-    return f"{clip['caption']}\n\n{tags}".strip()
+    text = f"{clip['caption']}\n\n{tags}".strip()
+    if clip.get("x_caption"):  # X/Twitter: one short line, 2 hashtags max
+        text += f"\n\n𝕏 {x_text(clip)}"
+    return text
+
+
+def x_text(clip: dict) -> str:
+    tags = " ".join("#" + t.lstrip("#").replace(" ", "") for t in clip["hashtags"][:2])
+    return f"{clip['x_caption'].strip()} {tags}".strip()[:280]
 
 
 def apply_campaign(clip: dict, src: dict) -> dict:
     """Make every clip pass the campaign's caption rules (name + required hashtags)."""
     name, required = src.get("name"), src.get("hashtags") or []
     caption = clip["caption"].strip()
+    x_caption = (clip.get("x_caption") or "").strip()
+    # the campaign needs the streamer named: add it at the end so the hook stays first
     if name and name.lower() not in caption.lower():
-        caption = f"{name}: {caption}"
+        caption = f"{caption} ({name})"
+    if x_caption and name and name.lower() not in x_caption.lower():
+        x_caption = f"{x_caption} ({name})"
     tags = list(required)
     for t in clip["hashtags"]:
         t = "#" + t.lstrip("#").replace(" ", "")
         if t.lower() not in (x.lower() for x in tags):
             tags.append(t)
-    return {**clip, "caption": caption, "hashtags": tags[:8]}
+    return {**clip, "caption": caption, "x_caption": x_caption, "hashtags": tags[:8]}
 
 
 def batch_label(video: dict, src: dict) -> str:

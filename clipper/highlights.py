@@ -14,12 +14,13 @@ SCHEMA = {
                     "start": {"type": "number", "description": "Start time in seconds"},
                     "end": {"type": "number", "description": "End time in seconds"},
                     "title": {"type": "string", "description": "On-screen hook, 3-8 words, from what's said in the clip"},
-                    "caption": {"type": "string", "description": "Post caption, 1-2 sentences, no hashtags"},
+                    "caption": {"type": "string", "description": "Post caption for TikTok/Reels/Shorts: punchy hook, not a description. No hashtags"},
+                    "x_caption": {"type": "string", "description": "Caption for X/Twitter: one short punchy line, max 120 characters, no hashtags"},
                     "hashtags": {"type": "array", "items": {"type": "string"}},
                     "score": {"type": "integer", "description": "Viral potential 1-10"},
                     "why": {"type": "string", "description": "One line on why this moment works"},
                 },
-                "required": ["start", "end", "title", "caption", "hashtags", "score", "why"],
+                "required": ["start", "end", "title", "caption", "x_caption", "hashtags", "score", "why"],
                 "additionalProperties": False,
             },
         }
@@ -103,7 +104,17 @@ Clips must not overlap. Sort clips by score, best first.
 
 The title is the on-screen hook: 3-8 words built from what is actually said or shown in \
 the clip, says what's coming without spoiling the payoff, never invents events. The \
-caption is 1-2 short sentences and may end with an easy question to get comments."""
+caption is 1-2 short sentences and may end with an easy question to get comments.
+
+Captions must make people NEED to watch, never explain or summarise the clip. Bad (an \
+explanation): "Clix frees a polar bear in GTA 6 and it attacks someone." Good (a hook): \
+"he really thought this was a good idea 💀" / "nobody was ready for what the bear did" / \
+"this is why you don't trust Clix with animals". Write like a fan reposting a clip: \
+short, lowercase is fine, tease the payoff without giving it away, quote the funniest \
+line he says, ask a hot question, or use a relatable reaction. 1-2 emoji max. The \
+x_caption is the same idea in one line for X/Twitter (max 120 characters). Name the \
+streamer naturally in both when it fits ("Clix really thought..."), since campaigns \
+require it."""
 
 
 def _format_transcript(segments: list[dict]) -> str:
