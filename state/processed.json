@@ -1,5 +1,5 @@
 {
-  "batch_counter": 4,
+  "batch_counter": 5,
   "clips": [
     {
       "at": 1795050101,
@@ -51,18 +51,32 @@
       "title": "I killed one lady and now 80 people want me dead"
     },
     {
-      "at": 1795058091,
+      "at": 1795057961,
       "id": "4.1",
       "score": 9,
       "streamer": "Clix",
-      "title": "Clix Escapes an 80-Person GTA 6 Ambush"
+      "title": "Clix Lost ALL His Aura in GTA 6"
     },
     {
-      "at": 1795058091,
+      "at": 1795057961,
       "id": "4.2",
       "score": 8,
       "streamer": "Clix",
-      "title": "Clix Clutches the Plane Drop... Barely"
+      "title": "Robbed Him For 20 Bucks"
+    },
+    {
+      "at": 1795058380,
+      "id": "5.1",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "Can Clix Make Thanksgiving Dinner?"
+    },
+    {
+      "at": 1795058380,
+      "id": "5.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Clix: Watching Me Beats Playing Yourself"
     }
   ],
   "failures": {},
