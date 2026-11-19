@@ -103,6 +103,27 @@ def webcam_box(samples, w: int, h: int):
     return (cx, cy, fw) if small else None
 
 
+def split_graph_fixed(cam, w: int, h: int) -> str:
+    """Webcam at a known spot (fractions x, y, w, h of the frame) on top, gameplay
+    filling the rest underneath, with the webcam area kept out of it."""
+    fx, fy, fw, fh = cam
+    cx, cy = int(fx * w) // 2 * 2, int(fy * h) // 2 * 2
+    cw, ch = max(2, int(fw * w) // 2 * 2), max(2, int(fh * h) // 2 * 2)
+    top_h = min(900, max(400, int(OUT_W * ch / cw))) // 2 * 2
+    bot_h = OUT_H - top_h
+    game_w = min(w, int(h * OUT_W / bot_h)) // 2 * 2
+    cam_l, cam_r = cx, cx + cw
+    candidates = [(w - game_w) / 2, cam_r, cam_l - game_w]
+    def overlap(x):
+        return max(0.0, min(x + game_w, cam_r) - max(x, cam_l)) if cy < h * 0.5 else 0.0
+    valid = [x for x in candidates if 0 <= x <= w - game_w] or [(w - game_w) / 2]
+    game_x = int(min(valid, key=lambda x: (overlap(x), abs(x - (w - game_w) / 2)))) // 2 * 2
+    return (f"[0:v]split[a][b];"
+            f"[a]crop={cw}:{ch}:{cx}:{cy},scale={OUT_W}:{top_h},setsar=1[top];"
+            f"[b]crop={game_w}:{h}:{game_x}:0,scale={OUT_W}:{bot_h},setsar=1[bot];"
+            f"[top][bot]vstack[base]")
+
+
 def split_graph(box, w: int, h: int) -> str:
     """Webcam on top (1080x640), gameplay underneath (1080x1280)."""
     cx, cy, fw = box
@@ -210,7 +231,8 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
 
 # ---------------------------------------------------------------- render
 
-def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None = None) -> str:
+def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None = None,
+                webcam: list | None = None) -> str:
     """Render one vertical clip. Returns the layout used."""
     w, h = probe(src)
     start, end = clip["start"], clip["end"]
@@ -221,6 +243,16 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
     plan = box = None
     if cw >= w:  # source already vertical-ish
         layout = "blur"
+    elif webcam and layout in ("auto", "split"):
+        # the streamer's webcam spot is known: only check for IRL footage, where
+        # a big face fills the camera and there is no webcam overlay
+        samples = track_speaker(src, start, end, w, min_hits=0.3)
+        big = samples and float(np.median([b[2] for _, b in samples if b])) >= 0.10 * w
+        if big:
+            plan = crop_plan(samples, w, cw)
+            layout = "crop"
+        else:
+            layout = "fixedsplit"
     elif layout in ("auto", "split"):
         # a forced split only needs to find the (static) webcam a few times
         samples = track_speaker(src, start, end, w, min_hits=0.15 if layout == "split" else 0.4)
@@ -243,7 +275,10 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
     elif layout == "crop":
         plan = [(0.0, (w - cw) // 2 // 2 * 2)]
 
-    if layout == "split":
+    if layout == "fixedsplit":
+        graph = split_graph_fixed(webcam, w, h)
+        layout = "split"
+    elif layout == "split":
         graph = split_graph(box, w, h)
     elif layout == "crop":
         x = _crop_x_expr(plan)

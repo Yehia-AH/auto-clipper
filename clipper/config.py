@@ -77,4 +77,6 @@ def normalize_source(s) -> dict:
         s[k] = str(s.get(k) or "").strip()
     s.setdefault("auto", True)  # False = only clip when a URL is run by hand
     s["single_stream"] = bool(s.get("single_stream", False))  # stop after one long stream
+    cam = s.get("webcam")  # [x, y, w, h] as fractions of the frame, if known
+    s["webcam"] = [float(v) for v in cam] if cam and len(cam) == 4 else None
     return s

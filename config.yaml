@@ -19,6 +19,7 @@
 #   reminder: shown in Telegram with each batch of clips
 #   since:    only clip videos recorded on/after this date (YYYY-MM-DD)
 #   layout:   force a layout for this streamer (split / crop / blur / auto)
+#   webcam:   [x, y, w, h] fractions of the screen where the webcam overlay sits
 #   single_stream: true = a one-off stream (marathon): stop watching once it's fully clipped
 #   require_game: only keep clips where this game is on screen (checked from 3 frames)
 #   auto:     false = don't watch this channel; only clip links you run by hand
@@ -29,6 +30,7 @@ sources:
     name: Clix
     since: 2026-11-18      # only footage from the GTA marathon (started Nov 18)
     layout: split          # webcam on top, gameplay below
+    webcam: [0, 0, 0.248, 0.247]   # his webcam box: left 25% x top 25% of the screen
     single_stream: true    # 24h marathon: stop watching Clix once it's fully clipped
     # require_game: GTA 6  # uncomment to keep only GTA 6 gameplay clips (drops IRL / chatting)
     hashtags: ["#Clix", "#GTA6"]
