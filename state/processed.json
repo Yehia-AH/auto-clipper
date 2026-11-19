@@ -177,24 +177,24 @@
     },
     {
       "at": 1795113120,
-      "id": "13.1",
-      "score": 7,
-      "streamer": "Clix",
-      "title": "Wait... It's My Girlfriend"
-    },
-    {
-      "at": 1795113120,
-      "id": "13.2",
-      "score": 7,
-      "streamer": "Clix",
-      "title": "I'm Spying And Walked Right Up"
-    },
-    {
-      "at": 1795113120,
       "id": "13.3",
       "score": 8,
       "streamer": "Clix",
       "title": "The Shortcut Don't Hurt Nobody"
+    },
+    {
+      "at": 1795113198,
+      "id": "13.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Clix Defends GTA 6 at 30 FPS"
+    },
+    {
+      "at": 1795113198,
+      "id": "13.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Clix Blames Chat, Chat Was Right"
     }
   ],
   "failures": {
