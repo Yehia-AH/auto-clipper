@@ -1,5 +1,6 @@
 """Cut a clip, reframe it to 9:16 (face tracking or blurred background) and burn in captions."""
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -170,6 +171,20 @@ def _ts(t: float) -> str:
     return f"{int(h)}:{int(m):02d}:{s:05.2f}"
 
 
+_SWEARS = re.compile(r"\b(f)u(ck\w*)|\b(s)h(it\w*)|\b(b)i(tch\w*)|\b(c)u(nt\w*)"
+                     r"|\b(p)u(ss(?:y|ies)\b)|\b(a)s(sholes?\b)|\b(n)i(gg\w*)",
+                     re.IGNORECASE)
+
+
+def censor(word: str) -> str:
+    """Mask swear words in burned-in captions (F*CK): platforms can limit the reach
+    of videos with visible profanity. The audio is untouched."""
+    def mask(m):
+        g = [x for x in m.groups() if x is not None]
+        return g[0] + "*" + g[1]
+    return _SWEARS.sub(mask, word)
+
+
 def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str | None,
               cfg: dict, title_y: int = 230, overlay: str | None = None) -> str:
     c = cfg
@@ -211,6 +226,8 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
 
     def fmt(word):
         word = word.replace("{", "(").replace("}", ")")
+        if c.get("censor", True):
+            word = censor(word)
         return word.upper() if c["uppercase"] else word
 
     for ci, chunk in enumerate(chunks):

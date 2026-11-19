@@ -315,8 +315,13 @@ def main() -> None:
         part_secs = cfg["stream_part_hours"] * 3600
 
         def next_batch() -> int:
-            state["batch_counter"] = state.get("batch_counter", 0) + 1
+            # Several runs can number batches at the same time (live recorder, re-made
+            # hours, hourly checks): claim the number on GitHub right away so two runs
+            # don't both call theirs "Batch 13".
+            remote = fetch.remote_batch_counter()
+            state["batch_counter"] = max(state.get("batch_counter", 0), remote) + 1
             fetch.save_state(state)
+            fetch.claim_state()
             return state["batch_counter"]
 
         def record(entries: list) -> None:

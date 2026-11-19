@@ -41,6 +41,26 @@ def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n")
 
 
+def remote_batch_counter() -> int:
+    """The batch counter as saved on GitHub right now (0 when not on GitHub)."""
+    if not os.environ.get("GITHUB_ACTIONS"):
+        return 0
+    try:
+        subprocess.run(["git", "fetch", "-q", "origin", "main"], cwd=ROOT, timeout=60)
+        out = subprocess.run(["git", "show", "origin/main:state/processed.json"], cwd=ROOT,
+                             capture_output=True, text=True, timeout=30).stdout
+        return int(json.loads(out).get("batch_counter", 0))
+    except Exception:
+        return 0
+
+
+def claim_state() -> None:
+    """Push our state now (merged with GitHub's) so other runs see a claimed batch number."""
+    script = ROOT / "scripts" / "push_state.sh"
+    if os.environ.get("GITHUB_ACTIONS") and script.exists():
+        subprocess.run(["bash", str(script)], cwd=ROOT, timeout=180)
+
+
 class NotReady(Exception):
     """Video can't be clipped yet (still live / VOD still processing). Retry next run."""
 
