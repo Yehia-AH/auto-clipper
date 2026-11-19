@@ -7,6 +7,9 @@ run-name: >-
 # clips every finished hour. A check runs every 10 minutes; once someone is live, one
 # run records ~3-4 h and then starts the next run right at the hour boundary.
 on:
+  push:   # Claude starts a check by committing requests/live.txt
+    branches: [main]
+    paths: ["requests/live.txt"]
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
