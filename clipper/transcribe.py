@@ -52,14 +52,16 @@ def transcribe(video: Path, model_name: str, language: str | None, cache: Path) 
     return out
 
 
-def add_energy(video: Path, segments: list[dict]) -> None:
+def add_energy(video: Path, segments: list[dict]) -> list[dict]:
     """Score each segment 0-10 by how loud it gets compared with the rest of the
-    video (yelling, laughing, hype). Stored as segment["energy"]."""
+    video (yelling, laughing, hype). Stored as segment["energy"].
+    Returns marker lines for very loud stretches with NO talking (crash, explosion,
+    gunfight, chase): gameplay moments the transcript alone would never show."""
     audio = load_audio(video)
     win = SAMPLE_RATE // 2  # 0.5 s windows
     n = len(audio) // win
     if n < 4:
-        return
+        return []
     rms = np.sqrt(np.mean(audio[: n * win].reshape(n, win) ** 2, axis=1) + 1e-10)
     db = 20 * np.log10(rms)
     ranks = np.argsort(np.argsort(db)) / max(n - 1, 1)  # 0..1 percentile per window
@@ -68,6 +70,27 @@ def add_energy(video: Path, segments: list[dict]) -> None:
         seg = ranks[a:b]
         if len(seg):
             s["energy"] = int(round(float(np.max(seg)) * 10))
+
+    # loud gameplay in the gaps between speech
+    talking = np.zeros(n, bool)
+    for s in segments:
+        talking[int(s["start"] * 2):int(s["end"] * 2) + 1] = True
+    loud = (ranks >= 0.97) & ~talking
+    markers, i = [], 0
+    while i < n:
+        if loud[i]:
+            j = i
+            while j + 1 < n and (loud[j + 1] or (j + 2 < n and loud[j + 2])):
+                j += 1
+            if j - i >= 3:  # at least ~2 s of it
+                markers.append({"start": round(i / 2, 2), "end": round((j + 1) / 2, 2),
+                                "text": "[no talking: very loud game moment]",
+                                "energy": int(round(float(np.max(ranks[i:j + 1])) * 10)),
+                                "words": [], "marker": True})
+            i = j + 1
+        else:
+            i += 1
+    return markers[:40]
 
 
 def all_words(segments: list[dict]) -> list[dict]:

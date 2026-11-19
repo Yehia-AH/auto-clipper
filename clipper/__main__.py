@@ -91,7 +91,10 @@ def process_video(video: dict, cfg: dict, keep_source: bool = False, next_batch=
         return None
 
     try:
-        add_energy(video["path"], segments)
+        markers = add_energy(video["path"], segments)
+        if markers:  # loud gameplay with no talking: show Claude where it happens
+            segments = sorted(segments + markers, key=lambda s: s["start"])
+            print(f"[energy] {len(markers)} loud no-talking game moments")
     except Exception as e:  # energy is a bonus signal; never fail a video over it
         print(f"[energy] skipped: {e}")
     for seg in segments:  # spoken GTA / gaming events (crash, chase, stunt, reaction...)

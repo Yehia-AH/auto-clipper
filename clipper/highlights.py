@@ -31,6 +31,21 @@ SCHEMA = {
 SYSTEM = """You are an expert short-form video editor who picks the moments from \
 long streams that will go viral as standalone TikTok / YouTube Shorts / Reels clips.
 
+Anything that makes someone stop scrolling and watch to the end counts. Look for all of \
+these, not just talking:
+- Crazy gameplay: a wild stunt, chase, crash, explosion, close call, glitch, chaotic NPC, \
+a fail, an insane play.
+- Big reactions: freakouts, screaming, disbelief, rage, laughing fits, jump scares.
+- Chat moments: chat explodes, roasts him, or he reacts to something chat said.
+- The streamer himself: a funny bit, a hot take, a story, a roast, a relatable or \
+wholesome moment, his personality.
+The best clips combine two: crazy gameplay AND a big reaction, or a funny line AND chat \
+exploding.
+
+Lines like "[no talking: very loud game moment]" mark loud gameplay where nobody speaks \
+(crash, explosion, gunfight, chase). The reaction usually comes right after it: a clip \
+that starts a few seconds before such a line and ends after the reaction is often great.
+
 Harsh rubric: a clip must pass ALL four, or it is not a clip.
 1. Works with zero context. A stranger scrolling understands it. No "what happened 10 \
 minutes ago", inside jokes, or game state they can't see.
@@ -188,6 +203,8 @@ def snap_to_words(clips: list[dict], words: list[dict], cfg: dict) -> list[dict]
         if not inside:
             continue
         start = max(0.0, inside[0]["start"] - 0.15)
+        if 1.0 < inside[0]["start"] - c["start"] <= 10:
+            start = max(0.0, c["start"])  # opens on gameplay before anyone speaks: keep it
         # trim from the end (at word boundaries) if too long
         while inside and inside[-1]["end"] - start > cfg["max_clip_seconds"]:
             inside.pop()
