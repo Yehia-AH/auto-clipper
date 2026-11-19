@@ -178,7 +178,7 @@
   ],
   "failures": {
     "clix": 2,
-    "v2932204601": 1
+    "v2932204601": 2
   },
   "finished_sources": {},
   "last_digest": "2026-11-19",
@@ -213,6 +213,10 @@
       "date": "2026-11-18",
       "output": "output/2026-11-18_lots-to-talk-about-gta-marathon-soon-dream-my-stre",
       "title": "\ud83c\udfc6 LOTS TO TALK ABOUT \ud83c\udfc6 GTA MARATHON SOON \ud83c\udfc6 DREAM MY STREAM WINNER ANNOUNCED \ud83c\udfc6 code clix for pc COME !vid"
+    },
+    "v2933739024": {
+      "date": "2026-11-19",
+      "skipped": "already recorded and clipped while it was live"
     }
   }
 }
