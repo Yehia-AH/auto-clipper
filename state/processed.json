@@ -1,5 +1,5 @@
 {
-  "batch_counter": 11,
+  "batch_counter": 12,
   "clips": [
     {
       "at": 1795050101,
@@ -153,17 +153,40 @@
       "score": 7,
       "streamer": "Clix",
       "title": "Clix Loses It During Lucia's Prison Call"
+    },
+    {
+      "at": 1795107495,
+      "id": "12.1",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "Pro Gamer Can't Use a Slim Jim"
+    },
+    {
+      "at": 1795107495,
+      "id": "12.2",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "Clix Apologizes Then Robs The Store"
+    },
+    {
+      "at": 1795107495,
+      "id": "12.3",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "Did I Just Turn Down A Free Car?"
     }
   ],
   "failures": {
     "clix": 2,
-    "v2932204601": 2
+    "v2932204601": 1
   },
   "finished_sources": {},
   "last_digest": "2026-11-19",
   "live_sessions": {
     "321174197598": {
-      "hours_clipped": [],
+      "hours_clipped": [
+        2
+      ],
       "seen": 1795103761,
       "source": "https://www.twitch.tv/clix",
       "start": 1795099708,
