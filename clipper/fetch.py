@@ -157,7 +157,7 @@ def probe_url(url: str) -> dict:
 
 
 def download(url: str, workdir: Path, cfg: dict, part: int = 0,
-             src_settings: dict | None = None) -> dict:
+             src_settings: dict | None = None, allow_recorded_live: bool = False) -> dict:
     """Download a video or stream VOD as mp4.
     Returns {id, title, path, duration, url, part, parts}.
     Long streams are fetched at 720p. Marathon streams longer than max_stream_hours are
@@ -169,7 +169,7 @@ def download(url: str, workdir: Path, cfg: dict, part: int = 0,
     live = info.get("is_live") or info.get("live_status") in ("is_live", "is_upcoming", "post_live")
     if live and not is_twitch:
         raise NotReady("stream is still live or the VOD is still processing")
-    if recorded_live(info, url):
+    if not allow_recorded_live and recorded_live(info, url):
         raise Skip("already recorded and clipped while it was live")
     if src_settings and before_start(info, src_settings):
         raise Skip(f"recorded before the campaign start ({src_settings.get('since')})")
@@ -275,19 +275,71 @@ def recorded_live(info: dict, url: str) -> bool:
     return False
 
 
+def sub_playlist(text: str, base_url: str, start: float, length: float) -> tuple[str, float]:
+    """From an HLS media playlist, keep only the segments covering
+    [start, start+length) and mark it finished (a still-growing live playlist makes
+    ffmpeg read in real time). Returns (playlist text, seconds to trim at the start)."""
+    from urllib.parse import urljoin
+    head, body, t, first_t = [], [], 0.0, None
+    dur = None
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line == "#EXT-X-ENDLIST":
+            continue
+        if line.startswith("#EXTINF:"):
+            dur = float(line[8:].split(",")[0])
+            continue
+        if line.startswith("#EXT-X-MAP:"):
+            m = re.search(r'URI="([^"]+)"', line)
+            if m:
+                line = line.replace(m.group(1), urljoin(base_url, m.group(1)))
+            head.append(line)
+            continue
+        if line.startswith("#"):
+            if line.startswith(("#EXTM3U", "#EXT-X-VERSION", "#EXT-X-TARGETDURATION")):
+                head.append(line)
+            continue
+        if dur is None:
+            continue
+        if t + dur > start and t < start + length:
+            if first_t is None:
+                first_t = t
+            body.append(f"#EXTINF:{dur:.3f},")
+            body.append(urljoin(base_url, line))
+        t += dur
+        dur = None
+    if not body:
+        raise RuntimeError(f"the recording has no video at {start / 3600:.1f}h yet")
+    if not head or head[0] != "#EXTM3U":
+        head.insert(0, "#EXTM3U")
+    playlist = "\n".join(head + ["#EXT-X-PLAYLIST-TYPE:VOD", "#EXT-X-MEDIA-SEQUENCE:0"]
+                         + body + ["#EXT-X-ENDLIST"]) + "\n"
+    return playlist, start - first_t
+
+
 def cut_hls(info: dict, height: int, start: float, length: float, out: Path) -> None:
-    """Copy [start, start+length) out of an HLS (m3u8) format with ffmpeg."""
+    """Copy [start, start+length) out of an HLS (m3u8) format: only the segments in
+    that range are fetched, so this takes minutes even while the stream is live."""
+    import requests
     url, headers, h = hls_format(info, height)
-    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-nostdin"]
-    if headers:
-        cmd += ["-headers", headers]
-    cmd += ["-ss", f"{start:.0f}", "-i", url, "-t", f"{length:.0f}",
-            "-map", "0:v:0", "-map", "0:a:0?", "-c", "copy", "-bsf:a", "aac_adtstoasc",
-            "-movflags", "+faststart", str(out)]
+    hdrs = dict(l.split(": ", 1) for l in headers.split("\r\n") if ": " in l)
     print(f"[fetch] cutting {start / 3600:.1f}h-{(start + length) / 3600:.1f}h "
           f"from the live recording ({h}p)")
+    text = requests.get(url, headers=hdrs, timeout=60).text
+    playlist, trim = sub_playlist(text, url, start, length)
+    local = out.with_suffix(".m3u8")
+    local.write_text(playlist)
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-nostdin",
+           "-protocol_whitelist", "file,http,https,tcp,tls,crypto"]
+    if headers:
+        cmd += ["-headers", headers]
+    cmd += ["-i", str(local), "-ss", f"{trim:.2f}", "-t", f"{length:.0f}",
+            "-map", "0:v:0", "-map", "0:a:0?", "-c", "copy", "-bsf:a", "aac_adtstoasc",
+            "-movflags", "+faststart", str(out)]
     try:
         subprocess.run(cmd, check=True, timeout=DOWNLOAD_LIMIT)
     except subprocess.TimeoutExpired:
         raise TimeoutError(f"cutting from the live recording took longer than "
                            f"{DOWNLOAD_LIMIT // 60} min, gave up") from None
+    finally:
+        local.unlink(missing_ok=True)

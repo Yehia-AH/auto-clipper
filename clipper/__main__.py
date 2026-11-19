@@ -333,7 +333,8 @@ def main() -> None:
                 src = forced or fetch.find_source(cfg, u)
                 for p in range(int(lo) - 1, int(hi or lo)):
                     try:
-                        video = fetch.download(u, work, cfg, p, src)
+                        # a hand-picked re-make may fill hours the live recorder missed
+                        video = fetch.download(u, work, cfg, p, src, allow_recorded_live=True)
                         video["source"] = src
                         done.append(process_video(video, cfg, next_batch=next_batch, record=record))
                     except (fetch.NotReady, fetch.Skip) as e:
