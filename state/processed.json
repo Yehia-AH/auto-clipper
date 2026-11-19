@@ -176,25 +176,25 @@
       "title": "Did I Just Turn Down A Free Car?"
     },
     {
-      "at": 1795113120,
+      "at": 1795114686,
       "id": "13.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Doom scrolling in the middle of a robbery"
+    },
+    {
+      "at": 1795114686,
+      "id": "13.1",
       "score": 8,
       "streamer": "Clix",
-      "title": "The Shortcut Don't Hurt Nobody"
+      "title": "A polar bear just ate him"
     },
     {
-      "at": 1795113198,
-      "id": "13.1",
-      "score": 7,
-      "streamer": "Clix",
-      "title": "Clix Defends GTA 6 at 30 FPS"
-    },
-    {
-      "at": 1795113198,
+      "at": 1795114686,
       "id": "13.2",
-      "score": 7,
+      "score": 8,
       "streamer": "Clix",
-      "title": "Clix Blames Chat, Chat Was Right"
+      "title": "I didn't mean to do this"
     }
   ],
   "failures": {
@@ -205,7 +205,8 @@
   "live_sessions": {
     "321174197598": {
       "hours_clipped": [
-        2
+        2,
+        4
       ],
       "seen": 1795110264,
       "source": "https://www.twitch.tv/clix",
