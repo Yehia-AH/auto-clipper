@@ -307,6 +307,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "Is Playing GTA 6 Cheating?"
+    },
+    {
+      "at": 1795139653,
+      "id": "20.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he did NOT just do that"
+    },
+    {
+      "at": 1795139653,
+      "id": "20.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "GTA 6 made him do chores"
+    },
+    {
+      "at": 1795139653,
+      "id": "20.3",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "the moped had other plans"
+    },
+    {
+      "at": 1795139653,
+      "id": "20.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "\"watch this, watch this\""
     }
   ],
   "failures": {
@@ -324,7 +352,8 @@
         7,
         8,
         9,
-        10
+        10,
+        11
       ],
       "seen": 1795135708,
       "source": "https://www.twitch.tv/clix",
