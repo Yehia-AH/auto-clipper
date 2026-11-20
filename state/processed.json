@@ -279,6 +279,27 @@
       "score": 7,
       "streamer": "Clix",
       "title": "I Literally Had This Race"
+    },
+    {
+      "at": 1795132810,
+      "id": "18.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Dating Tip One, Fellas"
+    },
+    {
+      "at": 1795132810,
+      "id": "18.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "What's Hiding In This Container?"
+    },
+    {
+      "at": 1795132810,
+      "id": "18.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Leave My Date For A Trio?"
     }
   ],
   "failures": {
@@ -294,7 +315,8 @@
         5,
         6,
         7,
-        8
+        8,
+        9
       ],
       "seen": 1795121308,
       "source": "https://www.twitch.tv/clix",
