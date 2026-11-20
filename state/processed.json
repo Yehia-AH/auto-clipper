@@ -159,6 +159,7 @@
       "id": "12.1",
       "score": 9,
       "streamer": "Clix",
+      "suggested": "2026-11-20",
       "title": "Pro Gamer Can't Use a Slim Jim"
     },
     {
@@ -166,6 +167,7 @@
       "id": "12.2",
       "score": 9,
       "streamer": "Clix",
+      "suggested": "2026-11-20",
       "title": "Clix Apologizes Then Robs The Store"
     },
     {
@@ -404,6 +406,7 @@
       "id": "23.2",
       "score": 9,
       "streamer": "Clix",
+      "suggested": "2026-11-20",
       "title": "\"watch, I'm not crashing\""
     },
     {
@@ -439,6 +442,7 @@
       "id": "25.1",
       "score": 8,
       "streamer": "Clix",
+      "suggested": "2026-11-20",
       "title": "the engine just died mid-air"
     },
     {
@@ -453,6 +457,7 @@
       "id": "25.3",
       "score": 8,
       "streamer": "Clix",
+      "suggested": "2026-11-20",
       "title": "he did NOT plan this escape"
     },
     {
@@ -488,6 +493,7 @@
       "id": "27.1",
       "score": 8,
       "streamer": "Clix",
+      "suggested": "2026-11-20",
       "title": "he just SENT it"
     }
   ],
@@ -495,7 +501,7 @@
     "clix": 2
   },
   "finished_sources": {},
-  "last_digest": "2026-11-19",
+  "last_digest": "2026-11-20",
   "live_sessions": {
     "321174197598": {
       "hours_clipped": [
