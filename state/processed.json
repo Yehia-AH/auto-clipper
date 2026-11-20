@@ -1,5 +1,5 @@
 {
-  "batch_counter": 31,
+  "batch_counter": 32,
   "clips": [
     {
       "at": 1795050101,
@@ -705,6 +705,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "worst way to go out"
+    },
+    {
+      "at": 1795206824,
+      "id": "31.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "there HAS to be a way up..."
+    },
+    {
+      "at": 1795206824,
+      "id": "31.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he did NOT think he'd survive this"
+    },
+    {
+      "at": 1795206824,
+      "id": "31.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "how do I NOT mantle that"
+    },
+    {
+      "at": 1795206824,
+      "id": "31.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "\"it's about to be aura\""
     }
   ],
   "failures": {
@@ -750,7 +778,7 @@
     }
   },
   "partial": {
-    "v2934996320": 1
+    "v2934996320": 2
   },
   "partial_urls": {
     "v2934996320": "https://www.twitch.tv/videos/2934996320"
