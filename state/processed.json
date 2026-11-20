@@ -419,6 +419,20 @@
       "score": 7,
       "streamer": "Clix",
       "title": "he was SO proud of this"
+    },
+    {
+      "at": 1795154142,
+      "id": "24.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "that was ONLY four stars??"
+    },
+    {
+      "at": 1795154142,
+      "id": "24.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "wait... what is THAT?"
     }
   ],
   "failures": {
@@ -440,7 +454,8 @@
         11,
         12,
         13,
-        14
+        14,
+        15
       ],
       "seen": 1795150108,
       "source": "https://www.twitch.tv/clix",
