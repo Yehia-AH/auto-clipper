@@ -1,5 +1,5 @@
 {
-  "batch_counter": 33,
+  "batch_counter": 34,
   "clips": [
     {
       "at": 1795050101,
@@ -754,6 +754,27 @@
       "score": 7,
       "streamer": "Clix",
       "title": "caught FIVE times in a row"
+    },
+    {
+      "at": 1795208084,
+      "id": "33.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "wait for the vault counter..."
+    },
+    {
+      "at": 1795208084,
+      "id": "33.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he did it AGAIN"
+    },
+    {
+      "at": 1795208084,
+      "id": "33.3",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "zero sympathy for this teammate"
     }
   ],
   "failures": {
@@ -799,7 +820,7 @@
     }
   },
   "partial": {
-    "v2934996320": 3
+    "v2934996320": 4
   },
   "partial_urls": {
     "v2934996320": "https://www.twitch.tv/videos/2934996320"
