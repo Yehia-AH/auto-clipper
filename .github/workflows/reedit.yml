@@ -1,0 +1,51 @@
+name: Re-edit clips
+run-name: "✨ Re-edit clips with the new look"
+
+# Claude starts this by committing requests/reedit.json (see clipper/reedit.py):
+# finds each listed clip's exact moment in the Twitch VOD by its audio and renders
+# it again with the current edits.
+on:
+  push:
+    branches: [main]
+    paths: ["requests/reedit.json"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reedit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-${{ hashFiles('config.yaml') }}
+          restore-keys: whisper-
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+      - name: Re-edit
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YTDLP_COOKIES: ${{ secrets.YTDLP_COOKIES }}
+          GH_TOKEN: ${{ github.token }}
+          PYTHONUNBUFFERED: "1"
+        run: python -m clipper.reedit requests/reedit.json
+      - name: Publish clips as GitHub releases
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish_releases.sh
+      - name: Remember progress
+        if: always()
+        run: bash scripts/push_state.sh
