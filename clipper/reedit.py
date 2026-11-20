@@ -102,7 +102,7 @@ def main() -> None:
             off, conf = locate(clip_audio, hay)
             start = lo + off
             print(f"[reedit] {c['title']}: found at {start / 3600:.3f}h (match {conf:.1f})")
-            if conf < 5:
+            if conf < 100:  # real matches score in the hundreds; low = muted VOD audio or wrong spot
                 raise RuntimeError(f"couldn't find it in the VOD reliably (match {conf:.1f})")
 
             # cut the moment (+2 s each side) and caption it again

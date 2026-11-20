@@ -293,7 +293,9 @@ def unique_filter(clip: dict, peaks: list[float], fps: int = 30) -> str:
                      for p in peaks) or "0"
     eq = (f"eq=contrast={rnd(1.02, 1.07, 1):.3f}:saturation={rnd(1.05, 1.18, 2):.3f}"
           f":brightness={rnd(-0.015, 0.02, 3):.3f}")
-    return (f"[base]zoompan=z='{z0:.3f}+{punch}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+    # fps first: zoompan emits one frame per input frame, so a 60 fps stream fed
+    # straight in plays at half speed (slow motion, out of sync with the audio)
+    return (f"[base]fps={fps},zoompan=z='{z0:.3f}+{punch}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
             f":d=1:s={OUT_W}x{OUT_H}:fps={fps},{eq},hue=h={rnd(-4, 4, 4):.1f},setsar=1[styled]")
 
 

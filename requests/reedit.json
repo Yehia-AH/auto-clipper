@@ -1,7 +1,7 @@
 {
  "vod": "https://www.twitch.tv/videos/2933739024",
  "source": "clix",
- "label": "re-edits for Instagram",
+ "label": "re-edits for Instagram (fixed)",
  "clips": [
   {
    "id": "18.1",
@@ -16,22 +16,6 @@
     "#GTA6",
     "#gta6funny",
     "#datingtips"
-   ],
-   "score": 7
-  },
-  {
-   "id": "19.1",
-   "tag": "clips-44611404394-h10-1",
-   "mp4": "clip_01_is-playing-gta-6-cheating.mp4",
-   "hour": 10,
-   "title": "Is Playing GTA 6 Cheating?",
-   "caption": "Clix says playing GTA 6 isn't cheating… agree? 👀",
-   "x_caption": "Clix: playing GTA 6 isn't cheating. thoughts? 👀",
-   "hashtags": [
-    "#Clix",
-    "#GTA6",
-    "#gta6",
-    "#hottake"
    ],
    "score": 7
   },
@@ -102,23 +86,6 @@
     "#clutch"
    ],
    "score": 7
-  },
-  {
-   "id": "21.4",
-   "tag": "clips-44647986624-h12-1",
-   "mp4": "clip_04_how-is-that-even-possible.mp4",
-   "hour": 12,
-   "title": "how is that even possible",
-   "caption": "\"guys I literally hit a little boy ALL the way up there\" 💀 GTA 6 physics are something else (Clix)",
-   "x_caption": "Clix cannot believe what GTA 6 physics just did",
-   "hashtags": [
-    "#Clix",
-    "#GTA6",
-    "#gtaphysics",
-    "#gaming",
-    "#funny"
-   ],
-   "score": 8
   },
   {
    "id": "22.2",
