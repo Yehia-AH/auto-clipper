@@ -1,5 +1,5 @@
 {
-  "batch_counter": 32,
+  "batch_counter": 33,
   "clips": [
     {
       "at": 1795050101,
@@ -733,6 +733,27 @@
       "score": 7,
       "streamer": "Clix",
       "title": "\"it's about to be aura\""
+    },
+    {
+      "at": 1795207439,
+      "id": "32.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "wait what happened to Speed"
+    },
+    {
+      "at": 1795207439,
+      "id": "32.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he's about to lose it"
+    },
+    {
+      "at": 1795207439,
+      "id": "32.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "caught FIVE times in a row"
     }
   ],
   "failures": {
@@ -778,7 +799,7 @@
     }
   },
   "partial": {
-    "v2934996320": 2
+    "v2934996320": 3
   },
   "partial_urls": {
     "v2934996320": "https://www.twitch.tv/videos/2934996320"
