@@ -482,6 +482,13 @@
       "score": 7,
       "streamer": "Clix",
       "title": "wait till you see this car"
+    },
+    {
+      "at": 1795164688,
+      "id": "27.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he just SENT it"
     }
   ],
   "failures": {
@@ -506,7 +513,8 @@
         14,
         15,
         16,
-        17
+        17,
+        18
       ],
       "seen": 1795150108,
       "source": "https://www.twitch.tv/clix",
