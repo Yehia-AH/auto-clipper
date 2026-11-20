@@ -391,6 +391,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "he really thought he could hit it"
+    },
+    {
+      "at": 1795150464,
+      "id": "23.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he really said it all"
+    },
+    {
+      "at": 1795150464,
+      "id": "23.2",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "\"watch, I'm not crashing\""
+    },
+    {
+      "at": 1795150464,
+      "id": "23.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "his first Ferrari lasted..."
+    },
+    {
+      "at": 1795150464,
+      "id": "23.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he was SO proud of this"
     }
   ],
   "failures": {
@@ -411,7 +439,8 @@
         10,
         11,
         12,
-        13
+        13,
+        14
       ],
       "seen": 1795135708,
       "source": "https://www.twitch.tv/clix",
