@@ -363,6 +363,34 @@
       "score": 8,
       "streamer": "Clix",
       "title": "how is that even possible"
+    },
+    {
+      "at": 1795146833,
+      "id": "22.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "wait for the train moment"
+    },
+    {
+      "at": 1795146833,
+      "id": "22.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he was NOT ready for this ending"
+    },
+    {
+      "at": 1795146833,
+      "id": "22.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "bro picked the WORST timing"
+    },
+    {
+      "at": 1795146833,
+      "id": "22.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he really thought he could hit it"
     }
   ],
   "failures": {
@@ -382,7 +410,8 @@
         9,
         10,
         11,
-        12
+        12,
+        13
       ],
       "seen": 1795135708,
       "source": "https://www.twitch.tv/clix",
