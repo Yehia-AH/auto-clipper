@@ -300,6 +300,13 @@
       "score": 7,
       "streamer": "Clix",
       "title": "Leave My Date For A Trio?"
+    },
+    {
+      "at": 1795136691,
+      "id": "19.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "Is Playing GTA 6 Cheating?"
     }
   ],
   "failures": {
@@ -316,7 +323,8 @@
         6,
         7,
         8,
-        9
+        9,
+        10
       ],
       "seen": 1795121308,
       "source": "https://www.twitch.tv/clix",
