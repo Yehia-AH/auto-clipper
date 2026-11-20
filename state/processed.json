@@ -840,12 +840,8 @@
       "title": "Clix (live) 2026-11-20 20:30"
     }
   },
-  "partial": {
-    "v2934996320": 5
-  },
-  "partial_urls": {
-    "v2934996320": "https://www.twitch.tv/videos/2934996320"
-  },
+  "partial": {},
+  "partial_urls": {},
   "processed": {
     "v2929881837": {
       "date": "2026-11-18",
@@ -868,6 +864,10 @@
     },
     "v2933739024": {
       "date": "2026-11-19",
+      "skipped": "already recorded and clipped while it was live"
+    },
+    "v2934996320": {
+      "date": "2026-11-20",
       "skipped": "already recorded and clipped while it was live"
     }
   }
