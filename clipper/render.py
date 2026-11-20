@@ -249,6 +249,60 @@ def build_ass(words: list[dict], clip_start: float, clip_end: float, title: str 
     return "\n".join(lines) + "\n"
 
 
+# ---------------------------------------------------------------- unique edits
+# Many clippers post the same streamer moments, and Instagram flags footage that
+# matches other uploads as "not original". These edits make every clip visibly our
+# own: zoom punch-ins on the loudest moments, a per-clip framing and colour grade,
+# and a progress bar.
+
+def loud_peaks(src: Path, start: float, dur: float, n: int = 3, gap: float = 6.0) -> list[float]:
+    """Seconds (from clip start) of the n loudest moments, at least `gap` s apart."""
+    try:
+        raw = subprocess.run(
+            ["ffmpeg", "-nostdin", "-loglevel", "error", "-ss", f"{start:.2f}", "-i", str(src),
+             "-t", f"{dur:.2f}", "-vn", "-ac", "1", "-ar", "8000", "-f", "s16le", "-"],
+            check=True, capture_output=True, timeout=120).stdout
+    except Exception:
+        return []
+    a = np.frombuffer(raw, np.int16).astype(np.float32) / 32768.0
+    win = 2000  # 0.25 s
+    k = len(a) // win
+    if k < 8:
+        return []
+    rms = np.sqrt(np.mean(a[:k * win].reshape(k, win) ** 2, axis=1) + 1e-10)
+    loud = np.percentile(rms, 90)
+    peaks: list[float] = []
+    for i in np.argsort(-rms):
+        t = i * 0.25
+        if rms[i] < loud or t < 1.0 or t > dur - 1.5:
+            continue
+        if all(abs(t - p) >= gap for p in peaks):
+            peaks.append(t)
+        if len(peaks) >= n:
+            break
+    return sorted(peaks)
+
+
+def unique_filter(clip: dict, peaks: list[float], fps: int = 30) -> str:
+    """[base] -> [styled]: per-clip zoom + colour grade, with punch-ins at `peaks`."""
+    import hashlib
+    seed = int(hashlib.md5(f"{clip.get('title')}{clip['start']}".encode()).hexdigest()[:8], 16)
+    rnd = lambda lo, hi, k: lo + (hi - lo) * ((seed >> (k * 4)) % 1000) / 999
+    z0 = rnd(1.02, 1.06, 0)
+    punch = "+".join(f"0.09*min(1,max(0,(it-{p - 0.1:.2f})/0.12))*min(1,max(0,({p + 1.1:.2f}-it)/0.2))"
+                     for p in peaks) or "0"
+    eq = (f"eq=contrast={rnd(1.02, 1.07, 1):.3f}:saturation={rnd(1.05, 1.18, 2):.3f}"
+          f":brightness={rnd(-0.015, 0.02, 3):.3f}")
+    return (f"[base]zoompan=z='{z0:.3f}+{punch}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+            f":d=1:s={OUT_W}x{OUT_H}:fps={fps},{eq},hue=h={rnd(-4, 4, 4):.1f},setsar=1[styled]")
+
+
+def progress_bar(dur: float, color: str = "00E5FF") -> str:
+    """[v0] -> [v]: a thin bar along the bottom that fills up as the clip plays."""
+    return (f"color=c=0x{color}:s={OUT_W}x10:r=30[bar];"
+            f"[v0][bar]overlay=x='-W+W*t/{dur:.2f}':y=H-10:shortest=1[v]")
+
+
 # ---------------------------------------------------------------- render
 
 def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None = None,
@@ -328,9 +382,18 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
         (workdir / ass_name).write_text(build_ass(
             clip["words"], start, end, clip.get("title") if cap.get("show_title", True) else None, cap,
             title_y=610 if layout == "split" else 230, overlay=overlay))
-        graph += f";[base]ass={ass_name}[v]"
+    if cfg.get("unique_edits", True):
+        peaks = loud_peaks(src.resolve(), start, dur)
+        graph += ";" + unique_filter(clip, peaks)
+        base = "[styled]"
     else:
-        graph += ";[base]null[v]"
+        base = "[base]"
+    if cap["enabled"]:
+        graph += f";{base}ass={ass_name}[v0]"
+    else:
+        graph += f";{base}null[v0]"
+    graph += ";" + (progress_bar(dur, cap.get("highlight_color", "00E5FF"))
+                    if cfg.get("unique_edits", True) else "[v0]null[v]")
 
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-ss", f"{start:.2f}", "-i", str(src.resolve()),
            "-t", f"{dur:.2f}", "-filter_complex", graph, "-map", "[v]", "-map", "0:a?",
