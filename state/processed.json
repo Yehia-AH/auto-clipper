@@ -824,6 +824,20 @@
       "score": 8,
       "streamer": "Clix",
       "title": "he's NOT trolling about this"
+    },
+    {
+      "at": 1795213963,
+      "id": "36.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he played the WHOLE game wrong"
+    },
+    {
+      "at": 1795213963,
+      "id": "36.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he LITERALLY saw me"
     }
   ],
   "failures": {
@@ -862,7 +876,8 @@
     },
     "321495894240": {
       "hours_clipped": [
-        6
+        6,
+        7
       ],
       "seen": 1795206647,
       "source": "https://www.twitch.tv/clix",
