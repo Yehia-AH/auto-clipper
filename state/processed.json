@@ -1048,6 +1048,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "get up get up GET UP"
+    },
+    {
+      "at": 1795249956,
+      "id": "46.1",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "he was NOT supposed to pull this off"
+    },
+    {
+      "at": 1795249956,
+      "id": "46.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he wasn't ready for this vault"
+    },
+    {
+      "at": 1795249956,
+      "id": "46.3",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "wait till he tries the voice changer"
+    },
+    {
+      "at": 1795249956,
+      "id": "46.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "his honest review of this mission"
     }
   ],
   "failures": {
@@ -1096,7 +1124,8 @@
         13,
         14,
         15,
-        16
+        16,
+        17
       ],
       "seen": 1795235099,
       "source": "https://www.twitch.tv/clix",
