@@ -859,6 +859,34 @@
       "score": 8,
       "streamer": "Clix",
       "title": "he just exposed Speed's playthrough"
+    },
+    {
+      "at": 1795221182,
+      "id": "38.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he did NOT see this coming"
+    },
+    {
+      "at": 1795221182,
+      "id": "38.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "David picked the wrong guy"
+    },
+    {
+      "at": 1795221182,
+      "id": "38.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "\"did they just not see me??\""
+    },
+    {
+      "at": 1795221182,
+      "id": "38.4",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "it can't be just him... right?"
     }
   ],
   "failures": {
@@ -899,7 +927,8 @@
       "hours_clipped": [
         6,
         7,
-        8
+        8,
+        9
       ],
       "seen": 1795206647,
       "source": "https://www.twitch.tv/clix",
