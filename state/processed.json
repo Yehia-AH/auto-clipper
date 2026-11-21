@@ -1145,6 +1145,20 @@
       "score": 7,
       "streamer": "Clix",
       "title": "wait... are those fighter jets?"
+    },
+    {
+      "at": 1795303990,
+      "id": "50.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he was NOT ready for the dogs"
+    },
+    {
+      "at": 1795303990,
+      "id": "50.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "the ladder was the other way..."
     }
   ],
   "failures": {
@@ -1216,7 +1230,8 @@
     "321521386080": {
       "hours_clipped": [
         3,
-        4
+        4,
+        5
       ],
       "seen": 1795292699,
       "source": "https://www.twitch.tv/clix",
