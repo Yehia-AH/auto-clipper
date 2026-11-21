@@ -1020,6 +1020,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "his brain after 14 hours straight"
+    },
+    {
+      "at": 1795246403,
+      "id": "45.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "wait... is that who I think it is?"
+    },
+    {
+      "at": 1795246403,
+      "id": "45.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he just figured it out"
+    },
+    {
+      "at": 1795246403,
+      "id": "45.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "this went wrong so fast"
+    },
+    {
+      "at": 1795246403,
+      "id": "45.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "get up get up GET UP"
     }
   ],
   "failures": {
@@ -1067,7 +1095,8 @@
         12,
         13,
         14,
-        15
+        15,
+        16
       ],
       "seen": 1795235099,
       "source": "https://www.twitch.tv/clix",
