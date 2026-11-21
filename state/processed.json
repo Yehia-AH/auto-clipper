@@ -1214,7 +1214,9 @@
       "title": "Clix (live) 2026-11-21 16:24"
     },
     "321521386080": {
-      "hours_clipped": [],
+      "hours_clipped": [
+        3
+      ],
       "seen": 1795292699,
       "source": "https://www.twitch.tv/clix",
       "start": 1795285553,
