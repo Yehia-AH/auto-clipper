@@ -908,6 +908,20 @@
       "score": 7,
       "streamer": "Clix",
       "title": "wait... is that actually him?"
+    },
+    {
+      "at": 1795228729,
+      "id": "40.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "why is he in a BIKINI"
+    },
+    {
+      "at": 1795228729,
+      "id": "40.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he barely touched the stick"
     }
   ],
   "failures": {
@@ -950,7 +964,8 @@
         7,
         8,
         9,
-        10
+        10,
+        11
       ],
       "seen": 1795220699,
       "source": "https://www.twitch.tv/clix",
