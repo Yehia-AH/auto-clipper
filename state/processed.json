@@ -1117,6 +1117,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "he wants to try this IRL"
+    },
+    {
+      "at": 1795286085,
+      "id": "49.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "why does it smell like pepperoni"
+    },
+    {
+      "at": 1795286085,
+      "id": "49.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he waited WAY too long"
+    },
+    {
+      "at": 1795286085,
+      "id": "49.3",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he did NOT expect a tank"
+    },
+    {
+      "at": 1795286085,
+      "id": "49.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "wait... are those fighter jets?"
     }
   ],
   "failures": {
@@ -1175,7 +1203,8 @@
         23,
         24,
         25,
-        26
+        26,
+        27
       ],
       "seen": 1795278299,
       "source": "https://www.twitch.tv/clix",
