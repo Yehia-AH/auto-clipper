@@ -1076,6 +1076,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "his honest review of this mission"
+    },
+    {
+      "at": 1795253414,
+      "id": "47.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "GTA 6 really went there"
+    },
+    {
+      "at": 1795253414,
+      "id": "47.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "the game just broke on him"
+    },
+    {
+      "at": 1795253414,
+      "id": "47.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he was dead... now he's alive"
+    },
+    {
+      "at": 1795253414,
+      "id": "47.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "nobody was ready for this scene"
     }
   ],
   "failures": {
@@ -1125,7 +1153,8 @@
         14,
         15,
         16,
-        17
+        17,
+        18
       ],
       "seen": 1795249499,
       "source": "https://www.twitch.tv/clix",
