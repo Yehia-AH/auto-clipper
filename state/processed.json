@@ -978,6 +978,27 @@
       "score": 7,
       "streamer": "Clix",
       "title": "he did NOT miss once"
+    },
+    {
+      "at": 1795238954,
+      "id": "43.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "this mission went from cinema to chaos"
+    },
+    {
+      "at": 1795238954,
+      "id": "43.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "six stars WITH a kid in the car"
+    },
+    {
+      "at": 1795238954,
+      "id": "43.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "who's got the controller??"
     }
   ],
   "failures": {
@@ -1023,7 +1044,8 @@
         10,
         11,
         12,
-        13
+        13,
+        14
       ],
       "seen": 1795235099,
       "source": "https://www.twitch.tv/clix",
