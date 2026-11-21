@@ -557,6 +557,7 @@
       "id": "28.9",
       "score": 9,
       "streamer": "Clix",
+      "suggested": "2026-11-21",
       "title": "\"watch, I'm not crashing\""
     },
     {
@@ -641,6 +642,7 @@
       "id": "29.7",
       "score": 9,
       "streamer": "Clix",
+      "suggested": "2026-11-21",
       "title": "\"watch, I'm not crashing\""
     },
     {
@@ -942,6 +944,7 @@
       "id": "41.3",
       "score": 9,
       "streamer": "Clix",
+      "suggested": "2026-11-21",
       "title": "wait... is that who I think it is"
     },
     {
@@ -1054,6 +1057,7 @@
       "id": "46.1",
       "score": 9,
       "streamer": "Clix",
+      "suggested": "2026-11-21",
       "title": "he was NOT supposed to pull this off"
     },
     {
@@ -1061,6 +1065,7 @@
       "id": "46.2",
       "score": 8,
       "streamer": "Clix",
+      "suggested": "2026-11-21",
       "title": "he wasn't ready for this vault"
     },
     {
@@ -1089,6 +1094,7 @@
       "id": "47.2",
       "score": 8,
       "streamer": "Clix",
+      "suggested": "2026-11-21",
       "title": "the game just broke on him"
     },
     {
@@ -1110,7 +1116,7 @@
     "clix": 2
   },
   "finished_sources": {},
-  "last_digest": "2026-11-20",
+  "last_digest": "2026-11-21",
   "live_sessions": {
     "321174197598": {
       "hours_clipped": [
