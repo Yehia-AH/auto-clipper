@@ -922,6 +922,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "he barely touched the stick"
+    },
+    {
+      "at": 1795232018,
+      "id": "41.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he fully thought he was dead"
+    },
+    {
+      "at": 1795232018,
+      "id": "41.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he trusted Clix with his Lambo"
+    },
+    {
+      "at": 1795232018,
+      "id": "41.3",
+      "score": 9,
+      "streamer": "Clix",
+      "title": "wait... is that who I think it is"
+    },
+    {
+      "at": 1795232018,
+      "id": "41.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "what are the chances bro"
     }
   ],
   "failures": {
@@ -965,7 +993,8 @@
         8,
         9,
         10,
-        11
+        11,
+        12
       ],
       "seen": 1795220699,
       "source": "https://www.twitch.tv/clix",
