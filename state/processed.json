@@ -887,6 +887,27 @@
       "score": 8,
       "streamer": "Clix",
       "title": "it can't be just him... right?"
+    },
+    {
+      "at": 1795225117,
+      "id": "39.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "nobody says anything when he drives good"
+    },
+    {
+      "at": 1795225117,
+      "id": "39.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "table number SEVEN??"
+    },
+    {
+      "at": 1795225117,
+      "id": "39.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "wait... is that actually him?"
     }
   ],
   "failures": {
@@ -928,7 +949,8 @@
         6,
         7,
         8,
-        9
+        9,
+        10
       ],
       "seen": 1795220699,
       "source": "https://www.twitch.tv/clix",
