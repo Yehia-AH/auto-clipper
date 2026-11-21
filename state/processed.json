@@ -999,6 +999,27 @@
       "score": 7,
       "streamer": "Clix",
       "title": "who's got the controller??"
+    },
+    {
+      "at": 1795242672,
+      "id": "44.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he told his own viewers to leave"
+    },
+    {
+      "at": 1795242672,
+      "id": "44.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "how many hours has he played?"
+    },
+    {
+      "at": 1795242672,
+      "id": "44.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "his brain after 14 hours straight"
     }
   ],
   "failures": {
@@ -1045,7 +1066,8 @@
         11,
         12,
         13,
-        14
+        14,
+        15
       ],
       "seen": 1795235099,
       "source": "https://www.twitch.tv/clix",
