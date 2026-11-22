@@ -1236,6 +1236,20 @@
       "score": 8,
       "streamer": "Clix",
       "title": "he really took the Pagani"
+    },
+    {
+      "at": 1795315323,
+      "id": "54.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "87 hours later, his honest verdict"
+    },
+    {
+      "at": 1795315323,
+      "id": "54.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he called chat idiots and then..."
     }
   ],
   "failures": {
@@ -1311,7 +1325,8 @@
         5,
         6,
         7,
-        8
+        8,
+        9
       ],
       "seen": 1795303553,
       "source": "https://www.twitch.tv/clix",
