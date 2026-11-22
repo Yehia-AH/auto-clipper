@@ -1208,6 +1208,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "that guy did NOT deserve this"
+    },
+    {
+      "at": 1795314794,
+      "id": "53.1",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "the Italian sausage line \ud83d\udc80"
+    },
+    {
+      "at": 1795314794,
+      "id": "53.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "one HP and pure panic"
+    },
+    {
+      "at": 1795314794,
+      "id": "53.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he wasn't ready for this ending"
+    },
+    {
+      "at": 1795314794,
+      "id": "53.4",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he really took the Pagani"
     }
   ],
   "failures": {
@@ -1282,7 +1310,8 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ],
       "seen": 1795303553,
       "source": "https://www.twitch.tv/clix",
