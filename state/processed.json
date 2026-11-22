@@ -1159,6 +1159,27 @@
       "score": 7,
       "streamer": "Clix",
       "title": "the ladder was the other way..."
+    },
+    {
+      "at": 1795307547,
+      "id": "51.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he actually pulled it off"
+    },
+    {
+      "at": 1795307547,
+      "id": "51.2",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "his whole team got left behind"
+    },
+    {
+      "at": 1795307547,
+      "id": "51.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "he expected way more than this"
     }
   ],
   "failures": {
@@ -1231,7 +1252,8 @@
       "hours_clipped": [
         3,
         4,
-        5
+        5,
+        6
       ],
       "seen": 1795303553,
       "source": "https://www.twitch.tv/clix",
