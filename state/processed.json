@@ -1180,6 +1180,34 @@
       "score": 7,
       "streamer": "Clix",
       "title": "he expected way more than this"
+    },
+    {
+      "at": 1795311378,
+      "id": "52.1",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he did NOT see this coming"
+    },
+    {
+      "at": 1795311378,
+      "id": "52.2",
+      "score": 8,
+      "streamer": "Clix",
+      "title": "he was NOT ready for this vault"
+    },
+    {
+      "at": 1795311378,
+      "id": "52.3",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "the escape went exactly wrong"
+    },
+    {
+      "at": 1795311378,
+      "id": "52.4",
+      "score": 7,
+      "streamer": "Clix",
+      "title": "that guy did NOT deserve this"
     }
   ],
   "failures": {
@@ -1253,7 +1281,8 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ],
       "seen": 1795303553,
       "source": "https://www.twitch.tv/clix",
