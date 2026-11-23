@@ -272,15 +272,13 @@ def rerank(clips: list[dict], cfg: dict) -> list[dict]:
               + "\n".join(lines))
     try:
         client = anthropic.Anthropic()
-        request = dict(model=cfg["model"], max_tokens=2000,
+        # ranking a handful of short candidates: the cheap check model is plenty
+        rank_model = cfg.get("check_model") or cfg["model"]
+        request = dict(model=rank_model, max_tokens=2000,
                        output_config={"effort": "low",
                                       "format": {"type": "json_schema", "schema": ORDER_SCHEMA}},
                        messages=[{"role": "user", "content": prompt}])
-        if cfg["model"].startswith("claude-haiku"):
-            response = client.messages.create(**request)
-        else:
-            response = client.beta.messages.create(
-                **request, betas=["server-side-fallback-2026-07-01"], fallbacks="default")
+        response = client.messages.create(**request)
         text = next(b.text for b in response.content if b.type == "text")
         order = [i for i in json.loads(text)["order"] if isinstance(i, int) and 0 <= i < len(clips)]
         seen, ranked = set(), []
