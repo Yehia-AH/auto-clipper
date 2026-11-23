@@ -274,6 +274,10 @@ def main() -> None:
     args = ap.parse_args()
 
     cfg = load_config()
+    if cfg.get("paused") and args.cmd in ("run", "live"):
+        print("Paused (paused: true in config.yaml): nothing to do.")
+        (ROOT / ".last_run.json").write_text("[]")
+        return
     if args.clips:
         cfg["clips_per_video"] = args.clips
     work = ROOT / ".work"

@@ -1,3 +1,7 @@
+# PAUSE SWITCH: true = do nothing (no watching, recording, clipping or Claude calls).
+# Set back to false to start again.
+paused: true
+
 # ---------------------------------------------------------------
 # Auto Clipper settings. Edit this file, commit, and the next
 # scheduled run picks it up.

@@ -273,6 +273,9 @@ def record_and_clip(cfg: dict, start_at: float | None, process_video, next_batch
         wait = start_at - time.time()
         print(f"[live] continuing a recording: waiting {wait / 60:.1f} min for the hour boundary")
         time.sleep(wait)
+    if cfg.get("paused"):
+        print("[live] paused in config.yaml, not recording")
+        return []
     found = find_live(cfg)
     if not found:
         print("[live] nobody is live, nothing to record")
@@ -378,5 +381,10 @@ def record_and_clip(cfg: dict, start_at: float | None, process_video, next_batch
 
 
 if __name__ == "__main__" and "--check" in sys.argv:
-    hit = find_live(load_config())
+    _cfg = load_config()
+    if _cfg.get("paused"):
+        print("PAUSED (paused: true in config.yaml)")
+        print("LIVE=")
+        sys.exit(0)
+    hit = find_live(_cfg)
     print(f"LIVE={hit[0]['url'] if hit else ''}")

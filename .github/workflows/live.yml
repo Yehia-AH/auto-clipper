@@ -73,6 +73,9 @@ jobs:
           fi
           # watcher: check every 5 minutes for ~5 h
           echo "go=no" >> "$GITHUB_OUTPUT"
+          if python -m clipper.live --check | grep -q '^PAUSED'; then
+            echo "Paused in config.yaml: not watching."; exit 0   # no next watcher either
+          fi
           end=$((SECONDS + 310 * 60))
           while [ $SECONDS -lt $end ]; do
             python -m clipper.live --check > /tmp/live.txt 2>&1 || true
@@ -130,4 +133,5 @@ jobs:
         run: |
           # handed off to the next recording run = still live; otherwise go back to watching
           if [ -f .handed_off ]; then echo "Handed off, the next run keeps recording."; exit 0; fi
+          if python -m clipper.live --check | grep -q '^PAUSED'; then echo "Paused: not watching."; exit 0; fi
           gh workflow run live.yml --ref main -R "$GITHUB_REPOSITORY" -f watch=1 && echo "Started a watcher."
