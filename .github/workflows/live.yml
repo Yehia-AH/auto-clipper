@@ -1,11 +1,18 @@
 name: Live Recorder
 run-name: >-
   ${{ inputs.start_at != '' && '🔴 Live: keep recording'
-  || (github.event_name == 'schedule' && '🔴 Live: is anyone live?' || '🔴 Live: check now') }}
+  || inputs.record != '' && '🔴 Live: recording'
+  || inputs.watch != '' && '👀 Live: watching for streams'
+  || (github.event_name == 'schedule' && '🔴 Live: is anyone live? (backup)' || '🔴 Live: check now') }}
 
 # Records watched streamers (live: true in config.yaml) while they're live and
-# clips every finished hour. A check runs every 10 minutes; once someone is live, one
-# run records ~3-4 h and then starts the next run right at the hour boundary.
+# clips every finished hour.
+# - A watcher run checks every 5 minutes for ~5 h, then starts the next watcher
+#   (GitHub's own schedule can be hours late, so it's only a backup that restarts
+#   the chain if it ever breaks).
+# - When someone is live, the watcher starts a recording run (record=1). It records
+#   ~3-4 h and hands off to the next run at the hour boundary (start_at=...).
+# - When the stream ends, the recording run starts a watcher again.
 on:
   push:   # Claude starts a check by committing requests/live.txt
     branches: [main]
@@ -16,6 +23,14 @@ on:
     inputs:
       start_at:
         description: "Used by the recorder itself to hand off between runs (leave empty)"
+        required: false
+        default: ""
+      record:
+        description: "Used by the watcher: someone is live, record now (leave empty)"
+        required: false
+        default: ""
+      watch:
+        description: "Used by the recorder: keep watching for the next stream (leave empty)"
         required: false
         default: ""
 
@@ -40,19 +55,36 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           START_AT: ${{ inputs.start_at }}
+          RECORD: ${{ inputs.record }}
+          WATCH: ${{ inputs.watch }}
         run: |
-          if [ -z "$START_AT" ]; then
-            # an older run still going = it's already recording: don't record twice
+          pip install -q yt-dlp pyyaml
+          if [ -n "$START_AT" ] || [ -n "$RECORD" ]; then
+            echo "go=yes" >> "$GITHUB_OUTPUT"; exit 0   # recording run: the caller already checked
+          fi
+          if [ -z "$WATCH" ]; then
+            # backup schedule / manual check: do nothing if a watcher or recorder is running
             busy=$(gh run list -R "$GITHUB_REPOSITORY" --workflow live.yml -L 30 \
               --json databaseId,status \
               --jq "[.[] | select(.status != \"completed\" and .databaseId < $GITHUB_RUN_ID)] | length")
             if [ "$busy" -gt 0 ]; then
-              echo "Already recording in another run."; echo "go=no" >> "$GITHUB_OUTPUT"; exit 0
+              echo "Already watching or recording in another run."; echo "go=no" >> "$GITHUB_OUTPUT"; exit 0
             fi
           fi
-          pip install -q yt-dlp pyyaml
-          python -m clipper.live --check | tee /tmp/live.txt
-          if grep -q '^LIVE=.\+' /tmp/live.txt; then echo "go=yes" >> "$GITHUB_OUTPUT"; else echo "go=no" >> "$GITHUB_OUTPUT"; fi
+          # watcher: check every 5 minutes for ~5 h
+          echo "go=no" >> "$GITHUB_OUTPUT"
+          end=$((SECONDS + 310 * 60))
+          while [ $SECONDS -lt $end ]; do
+            python -m clipper.live --check > /tmp/live.txt 2>&1 || true
+            if grep -q '^LIVE=.\+' /tmp/live.txt; then
+              cat /tmp/live.txt
+              gh workflow run live.yml --ref main -R "$GITHUB_REPOSITORY" -f record=1 && echo "Live! Started a recording run."
+              exit 0
+            fi
+            echo "$(date -u +%H:%M) $(grep -v '^LIVE=' /tmp/live.txt | tail -1)"
+            sleep 300
+          done
+          gh workflow run live.yml --ref main -R "$GITHUB_REPOSITORY" -f watch=1 && echo "Started the next watcher."
 
       - name: Install ffmpeg
         if: steps.check.outputs.go == 'yes'
@@ -90,3 +122,12 @@ jobs:
       - name: Remember progress
         if: always() && steps.check.outputs.go == 'yes'
         run: bash scripts/push_state.sh
+
+      - name: Keep watching for the next stream
+        if: always() && steps.check.outputs.go == 'yes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # handed off to the next recording run = still live; otherwise go back to watching
+          if [ -f .handed_off ]; then echo "Handed off, the next run keeps recording."; exit 0; fi
+          gh workflow run live.yml --ref main -R "$GITHUB_REPOSITORY" -f watch=1 && echo "Started a watcher."

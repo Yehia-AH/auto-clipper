@@ -209,6 +209,8 @@ def start_next_run(start_at: float) -> None:
     r = subprocess.run(["gh", "workflow", "run", "live.yml", "--ref", "main", "-R", repo,
                         "-f", f"start_at={int(start_at)}"], capture_output=True, text=True)
     print(f"[live] started the next recording run: {r.returncode == 0} {r.stderr.strip()[:200]}")
+    if r.returncode == 0:
+        (ROOT / ".handed_off").write_text(str(int(start_at)))  # the workflow then won't start a watcher
 
 
 def publish_release(out_dir: Path, tag: str) -> None:
