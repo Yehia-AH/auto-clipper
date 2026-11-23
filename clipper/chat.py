@@ -265,3 +265,26 @@ def live_counts(path, start_epoch: float, end_epoch: float) -> dict[int, int] | 
     total = sum(counts.values())
     print(f"[chat] {total} live chat messages in this part")
     return counts if total >= 30 else None
+
+
+def stream_game(login: str) -> str | None:
+    """The game (category) a live Twitch stream is set to, e.g. "Grand Theft Auto VI".
+    None if offline or Twitch didn't answer. Free: no Claude involved."""
+    try:
+        r = requests.post(GQL, timeout=20, headers={"Client-Id": CLIENT_ID}, json={
+            "query": "query($l: String!) { user(login: $l) { stream { game { name } } } }",
+            "variables": {"l": login.lower()}})
+        stream = (((r.json().get("data") or {}).get("user")) or {}).get("stream")
+        return ((stream or {}).get("game") or {}).get("name") or None
+    except Exception:
+        return None
+
+
+def matches_game(category: str | None, wanted: str) -> bool:
+    """Does a Twitch category match a source's require_game ("GTA 6" etc.)?"""
+    if not category or not wanted:
+        return False
+    c, w = category.casefold(), wanted.casefold().replace(" ", "")
+    if w in ("gta6", "gtavi", "grandtheftautovi", "grandtheftauto6"):
+        return any(x in c for x in ("grand theft auto vi", "gta vi", "gta 6", "grand theft auto 6"))
+    return wanted.casefold() in c

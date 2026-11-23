@@ -163,6 +163,37 @@ class Recorder(threading.Thread):
             self.proc.terminate()
 
 
+def log_game(login: str, path: Path, stop: threading.Event, every: int = 300) -> None:
+    from .chat import stream_game
+    while not stop.is_set():
+        game = stream_game(login)
+        if game:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(f"{time.time():.0f}\t{game}\n")
+        stop.wait(every)
+
+
+def game_share(path: Path, a: float, b: float, wanted: str | None) -> tuple[float, str]:
+    """Share of category samples in [a, b) that match `wanted`, and the most seen
+    category. ("", 1.0) when there's nothing to go on, so the hour is clipped."""
+    from collections import Counter
+    from .chat import matches_game
+    if not wanted or not path.exists():
+        return 1.0, ""
+    games = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        t, _, g = line.partition("\t")
+        try:
+            if a <= float(t) < b + 60:
+                games.append(g)
+        except ValueError:
+            pass
+    if len(games) < 3:
+        return 1.0, ""
+    share = sum(matches_game(g, wanted) for g in games) / len(games)
+    return share, Counter(games).most_common(1)[0][0]
+
+
 def recorded_files(workdir: Path) -> list[tuple[float, Path]]:
     out = []
     for p in workdir.glob("rec_*.ts"):
@@ -276,6 +307,12 @@ def record_and_clip(cfg: dict, start_at: float | None, process_video, next_batch
     chat_log = workdir / "chat.tsv"
     slug = re.search(r"twitch\.tv/([A-Za-z0-9_]+)", src["url"])
     chat = LiveChat(slug.group(1), chat_log).start() if slug else None
+    # note the stream's Twitch category every 5 min: hours spent on another game
+    # (e.g. Fortnite before GTA) are skipped before any Claude call
+    game_log = workdir / "game.tsv"
+    if slug and src.get("require_game"):
+        threading.Thread(target=log_game, args=(slug.group(1), game_log, rec.done),
+                         daemon=True).start()
 
     done, handled = [], set()
     min_len = cfg["min_source_minutes"] * 60
@@ -299,6 +336,14 @@ def record_and_clip(cfg: dict, start_at: float | None, process_video, next_batch
                 p.unlink(missing_ok=True)
             if length < min_len:
                 print(f"[live] hour {h}: only {length / 60:.0f} min recorded here, skipping")
+                continue
+            share, seen = game_share(game_log, starts[h], starts[h] + length, src.get("require_game"))
+            if seen and share < 0.2:
+                print(f"[live] hour {h}: not {src['require_game']} (category: {seen}), skipped "
+                      "without calling Claude")
+                if deliver.telegram_enabled():
+                    deliver.send_message(f"🎮 {name} hour {h}: playing {seen}, not "
+                                         f"{src['require_game']}. Skipped (no API cost).")
                 continue
             print(f"[live] hour {h}: {length / 60:.0f} min recorded, clipping it")
             video = {"id": f"live{sid}", "title": f"{info.get('title') or name} (part {h} live)",
