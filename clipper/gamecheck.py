@@ -64,3 +64,55 @@ def shows_game(src: Path, start: float, end: float, game: str, cfg: dict) -> tup
     except Exception as e:
         print(f"[gamecheck] skipped: {e}")
         return True, "check failed"
+
+
+CAM_SCHEMA = {
+    "type": "object",
+    "properties": {"webcam_frames": {"type": "integer", "description": "How many of the images show a real webcam person"}},
+    "required": ["webcam_frames"],
+    "additionalProperties": False,
+}
+
+
+def has_webcam(src: Path, start: float, end: float, box: list, cfg: dict) -> bool:
+    """Is the streamer's webcam really in `box` ([x, y, w, h] fractions) during this
+    clip? Streamers sometimes stream without their camera or move it, and the clip
+    must not show a random corner of the game as "the webcam". Errors count as True."""
+    cap = cv2.VideoCapture(str(src))
+    crops = []
+    for k in range(3):
+        t = start + (end - start) * (k + 1) / 4
+        cap.set(cv2.CAP_PROP_POS_MSEC, t * 1000)
+        ok, frame = cap.read()
+        if not ok:
+            continue
+        h, w = frame.shape[:2]
+        x0, y0 = int(box[0] * w), int(box[1] * h)
+        crop = frame[y0:y0 + max(int(box[3] * h), 2), x0:x0 + max(int(box[2] * w), 2)]
+        crop = cv2.resize(crop, (480, int(crop.shape[0] * 480 / max(crop.shape[1], 1))))
+        ok, jpg = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        if ok:
+            crops.append(base64.b64encode(jpg.tobytes()).decode())
+    cap.release()
+    if not crops:
+        return True
+    content = [{"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": c}}
+               for c in crops]
+    content.append({"type": "text", "text": (
+        f"These {len(crops)} images are the same corner of a gaming livestream, where the "
+        "streamer's webcam usually sits. Count how many images show a REAL-LIFE webcam "
+        "feed of a person (a real human on camera, e.g. in their room with headphones). "
+        "Video game graphics, game characters, menus, maps or cutscenes do NOT count, "
+        "even if they show a person.")})
+    try:
+        r = anthropic.Anthropic().messages.create(
+            model=cfg.get("check_model") or cfg["model"], max_tokens=1000,
+            output_config={"effort": "low", "format": {"type": "json_schema", "schema": CAM_SCHEMA}},
+            messages=[{"role": "user", "content": content}])
+        if r.stop_reason == "refusal":
+            return True
+        n = int(json.loads(next(b.text for b in r.content if b.type == "text"))["webcam_frames"])
+        return n * 2 >= len(crops)  # most of the clip
+    except Exception as e:
+        print(f"[webcam] check skipped: {e}")
+        return True

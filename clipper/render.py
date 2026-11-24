@@ -317,6 +317,15 @@ def render_clip(src: Path, clip: dict, out: Path, cfg: dict, overlay: str | None
 
     layout = cfg["layout"]
     plan = box = None
+    if webcam and layout in ("auto", "split") and cw < w and cfg.get("webcam_check", True):
+        # the known webcam spot can be empty (streaming without a camera, or the
+        # camera moved): never show a random corner of the game as "the webcam"
+        from .gamecheck import has_webcam
+        if not has_webcam(src, start, end, webcam, cfg):
+            print("[render] no webcam in its usual spot for this clip")
+            webcam = None
+            if gameplay_only:
+                layout = "zoom"  # gameplay fills the screen instead
     if cw >= w:  # source already vertical-ish
         layout = "blur"
     elif webcam and layout in ("auto", "split") and gameplay_only:
