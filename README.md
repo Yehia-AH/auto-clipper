@@ -2,6 +2,21 @@
 
 > 📒 **How we actually run it, costs, campaign rules and lessons learned: [PLAYBOOK.md](PLAYBOOK.md)**
 
+## Use it yourself (free, MIT licensed)
+
+1. **Fork** this repo (top right → Fork). Keep your fork **public** so GitHub Actions is free.
+2. In your fork: **Settings → Secrets and variables → Actions**, add `ANTHROPIC_API_KEY`
+   (+ `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to get clips on your phone). See setup below.
+3. **Actions** tab → enable workflows.
+4. Edit `config.yaml`: set **`paused: false`**, and replace the `sources:` with the
+   streamer(s) you clip (Twitch: `live: true` to record while live; `require_game`
+   to keep only one game; `hashtags`, `notes` and `reminder` for the campaign rules).
+5. Optional: empty `state/processed.json` to `{}` so you start with a clean history.
+
+That's it: a watcher checks every 5 minutes, records the stream while it's live and
+sends ~4 clips per stream hour to Telegram. The only cost is Claude API usage while
+clipping. Only clip creators who allow it (e.g. paid clipping campaigns).
+
 Turns long videos (podcasts, streams, interviews) into ready-to-post vertical
 clips, automatically, every hour. You only do the posting.
 
@@ -52,8 +67,10 @@ found too (`stream_clips_per_hour`, default 3). Streams longer than
 For gaming / reaction streams, `layout: auto` spots a small webcam in a corner and
 switches to a split layout: webcam on top, gameplay underneath.
 
-Real-time clipping *while* a stream is live isn't supported: that needs a
-computer that's on for the whole stream.
+**Clipping while live (Twitch):** set `live: true` on a source. The Live Recorder
+workflow watches every 5 minutes, records the broadcast itself (no gaps, handing
+over between runs on the hour), reads live chat, skips breaks and hours spent on
+another game, and clips each finished hour about 15 minutes after it ends.
 
 ## Posting
 Each clip arrives in Telegram with the caption + hashtags already written. Save

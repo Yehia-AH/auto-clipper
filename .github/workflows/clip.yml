@@ -2,8 +2,8 @@ name: Auto Clip
 run-name: >-
   ${{ github.event_name == 'push' && github.event.head_commit.message
   || inputs.urls != '' && format('✂️ {0}: {1}', inputs.campaign != 'auto-detect' && inputs.campaign || 'Clip', inputs.urls)
-  || (github.event_name == 'schedule' && '⏰ Clix: hourly check'
-  || '🔎 Clix: check now') }}
+  || (github.event_name == 'schedule' && '⏰ Hourly check'
+  || '🔎 Check now') }}
 
 on:
   # Claude starts runs by committing a link to requests/run.txt
