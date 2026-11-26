@@ -1,5 +1,7 @@
 # Auto Clipper ✂️
 
+> 📒 **How we actually run it, costs, campaign rules and lessons learned: [PLAYBOOK.md](PLAYBOOK.md)**
+
 Turns long videos (podcasts, streams, interviews) into ready-to-post vertical
 clips, automatically, every hour. You only do the posting.
 
