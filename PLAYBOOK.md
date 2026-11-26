@@ -4,6 +4,9 @@ Everything we built and learned running this bot on real clipping campaigns
 (Nov 2026), so nothing has to be figured out twice. The setup guide is in
 `README.md`; this file is the "how we actually run it" part.
 
+- **[docs/FULL_HISTORY.md](docs/FULL_HISTORY.md)**: every message of the whole project, in order
+- **[docs/CODE_CHANGES.md](docs/CODE_CHANGES.md)**: every code change, with why
+
 ## Status right now
 
 **Paused** (`paused: true` at the top of `config.yaml`). Nothing watches, records,
